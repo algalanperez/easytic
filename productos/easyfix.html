@@ -1,0 +1,693 @@
+<!-- ============================================================
+     PÁGINA: EasyFix — Producto dedicado
+     Slug recomendado: /productos/easyfix/
+     Página padre: /productos/
+     Formato: Bloques Gutenberg para WordPress
+     ============================================================ -->
+
+<!-- wp:html -->
+<style>
+  /* ── Variables de marca EasyFix ── */
+  :root {
+    --ef-amber:   #f57c00;
+    --ef-amber2:  #ff9800;
+    --ef-dark:    #0d1f3c;
+    --ef-navy:    #1a2744;
+    --ef-blue:    #1565c0;
+    --ef-light:   #fff8f0;
+    --ef-surface: #37474f;
+    --ef-white:   #ffffff;
+    --ef-text:    #1a2744;
+    --ef-muted:   #546e7a;
+    --ef-card-r:  12px;
+    --ef-shadow:  0 4px 24px rgba(13,31,60,.12);
+    --ef-shadow2: 0 8px 40px rgba(13,31,60,.20);
+  }
+
+  /* ── Feature pill ── */
+  .ef-pill {
+    display: inline-block;
+    background: rgba(245,124,0,.12);
+    color: var(--ef-amber);
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 5px 16px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+  .ef-pill--blue {
+    background: rgba(21,101,192,.1);
+    color: var(--ef-blue);
+  }
+
+  /* ── Hero badge ── */
+  .ef-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3);
+    color: white;
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 6px 18px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Feature card ── */
+  .ef-feature-card {
+    background: var(--ef-white);
+    border-radius: var(--ef-card-r);
+    padding: 28px 24px;
+    box-shadow: var(--ef-shadow);
+    transition: transform .22s ease, box-shadow .22s ease;
+    border-top: 4px solid var(--ef-amber);
+  }
+  .ef-feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--ef-shadow2);
+  }
+  .ef-feature-card__icon {
+    font-size: 2rem;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .ef-feature-card__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ef-text);
+    margin: 0 0 10px;
+  }
+  .ef-feature-card__text {
+    font-size: .93rem;
+    line-height: 1.65;
+    color: var(--ef-muted);
+    margin: 0;
+  }
+
+  /* ── Version badge ── */
+  .ef-version-free { border-top-color: var(--ef-blue) !important; }
+  .ef-version-pro  { border-top-color: var(--ef-amber) !important; }
+
+  /* ── Grid layouts ── */
+  .ef-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+  }
+  .ef-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 28px;
+  }
+
+  /* ── Versiones comparison cards ── */
+  .ef-plan-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--ef-shadow);
+    display: flex;
+    flex-direction: column;
+  }
+  .ef-plan-card--pro {
+    box-shadow: 0 8px 48px rgba(245,124,0,.25);
+    position: relative;
+  }
+  .ef-plan-card--pro::before {
+    content: 'MÁS POPULAR';
+    position: absolute;
+    top: -1px;
+    right: 24px;
+    background: var(--ef-amber);
+    color: white;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    padding: 4px 14px;
+    border-radius: 0 0 8px 8px;
+  }
+  .ef-plan-header {
+    padding: 32px 28px 24px;
+  }
+  .ef-plan-header--free { background: #e3f0fd; }
+  .ef-plan-header--pro  { background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%); }
+  .ef-plan-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0 0 8px;
+    color: var(--ef-text);
+  }
+  .ef-plan-header--pro .ef-plan-name { color: white; }
+  .ef-plan-price {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--ef-blue);
+    line-height: 1;
+    margin: 0;
+  }
+  .ef-plan-header--pro .ef-plan-price { color: white; }
+  .ef-plan-price span {
+    font-size: 1rem;
+    font-weight: 400;
+    opacity: .7;
+  }
+  .ef-plan-body { padding: 24px 28px 28px; flex: 1; }
+  .ef-plan-list {
+    list-style: none;
+    margin: 0 0 24px;
+    padding: 0;
+  }
+  .ef-plan-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f4f8;
+    font-size: .95rem;
+    color: var(--ef-text);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .ef-plan-list li::before { content: '✓'; color: #4caf50; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .ef-plan-list li.ef-disabled { color: #b0bec5; }
+  .ef-plan-list li.ef-disabled::before { content: '–'; color: #b0bec5; }
+
+  /* ── Download buttons ── */
+  .ef-store-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: #1a2744;
+    color: white !important;
+    text-decoration: none !important;
+    padding: 13px 24px;
+    border-radius: 10px;
+    transition: background .18s;
+    min-width: 200px;
+  }
+  .ef-store-btn:hover { background: #0d1326; }
+  .ef-store-btn--amber { background: var(--ef-amber); }
+  .ef-store-btn--amber:hover { background: #e65100; }
+  .ef-store-btn__icon { font-size: 1.6rem; flex-shrink: 0; }
+  .ef-store-btn__text { text-align: left; }
+  .ef-store-btn__small { font-size: .72rem; opacity: .8; display: block; }
+  .ef-store-btn__name  { font-size: 1rem; font-weight: 700; display: block; }
+
+  /* ── Offline badge ── */
+  .ef-offline-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-size: .88rem;
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: 30px;
+    border: 1px solid #c8e6c9;
+  }
+
+  /* ── Breadcrumb ── */
+  .ef-breadcrumb {
+    font-size: .85rem;
+    color: var(--ef-muted);
+    margin-bottom: 16px;
+  }
+  .ef-breadcrumb a { color: rgba(255,255,255,.7); text-decoration: none; }
+  .ef-breadcrumb a:hover { color: white; }
+  .ef-breadcrumb span { color: rgba(255,255,255,.5); margin: 0 8px; }
+
+  /* ── Section divider ── */
+  .ef-divider {
+    border: none;
+    border-top: 2px solid #e8edf2;
+    margin: 0;
+  }
+
+  /* ── CTA final ── */
+  .ef-final-cta {
+    background: linear-gradient(135deg, #0d1f3c 0%, #1565c0 100%);
+    border-radius: 20px;
+    padding: 60px 40px;
+    text-align: center;
+    color: white;
+  }
+  .ef-final-cta h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0 0 16px;
+    color: white;
+  }
+  .ef-final-cta p {
+    font-size: 1.05rem;
+    opacity: .85;
+    max-width: 520px;
+    margin: 0 auto 32px;
+    line-height: 1.7;
+  }
+  .ef-download-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .ef-plan-card--pro::before { display: none; }
+    .ef-final-cta { padding: 40px 24px; }
+    .ef-final-cta h2 { font-size: 1.5rem; }
+  }
+</style>
+<!-- /wp:html -->
+
+<!-- ════════════════════════════════════════════════
+     HERO — EasyFix
+     ════════════════════════════════════════════════ -->
+
+<!-- wp:cover {"dimRatio":0,"minHeight":560,"minHeightUnit":"px","style":{"color":{"gradient":"linear-gradient(135deg,#1a2744 0%,#37474f 50%,#f57c00 100%)"}},"className":"alignfull"} -->
+<div class="wp-block-cover alignfull" style="min-height:560px;background:linear-gradient(135deg,#1a2744 0%,#37474f 50%,#f57c00 100%)">
+  <div class="wp-block-cover__inner-container" style="max-width:860px;margin:0 auto;padding:80px 24px;text-align:center">
+
+    <!-- Breadcrumb -->
+    <div class="ef-breadcrumb">
+      <a href="/productos/">← Productos digitales</a>
+      <span>·</span>
+      Apps móviles
+    </div>
+
+    <div class="ef-hero-badge">🔧 EasyFix — Taller mecánico</div>
+
+    <!-- wp:heading {"level":1,"style":{"color":{"text":"#ffffff"},"typography":{"fontSize":"3rem","fontWeight":"800","lineHeight":"1.15"}}} -->
+    <h1 style="color:#ffffff;font-size:3rem;font-weight:800;line-height:1.15;margin:0 0 20px">
+      La gestión de tu taller,<br>en la palma de tu mano
+    </h1>
+    <!-- /wp:heading -->
+
+    <!-- wp:paragraph {"align":"center","style":{"color":{"text":"rgba(255,255,255,0.88)"},"typography":{"fontSize":"1.2rem","lineHeight":"1.75"}}} -->
+    <p style="color:rgba(255,255,255,0.88);font-size:1.2rem;line-height:1.75;max-width:640px;margin:0 auto 36px">
+      EasyFix es la app Android para talleres mecánicos que sustituye papel, hojas de cálculo y soluciones complicadas. Simple, rápida y diseñada específicamente para el trabajo diario del taller.
+    </p>
+    <!-- /wp:paragraph -->
+
+    <!-- Download buttons -->
+    <!-- wp:html -->
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:32px">
+      <a class="ef-store-btn" href="https://play.google.com/store/apps/details?id=es.easytic.easyfix" target="_blank" rel="noopener">
+        <span class="ef-store-btn__icon">▶</span>
+        <span class="ef-store-btn__text">
+          <span class="ef-store-btn__small">Disponible gratis en</span>
+          <span class="ef-store-btn__name">Google Play</span>
+        </span>
+      </a>
+      <a class="ef-store-btn ef-store-btn--amber" href="https://play.google.com/store/apps/details?id=es.easytic.easyfix.pro" target="_blank" rel="noopener">
+        <span class="ef-store-btn__icon">⭐</span>
+        <span class="ef-store-btn__text">
+          <span class="ef-store-btn__small">Versión Pro en</span>
+          <span class="ef-store-btn__name">EasyFix Pro</span>
+        </span>
+      </a>
+    </div>
+    <!-- /wp:html -->
+
+    <!-- wp:html -->
+    <div>
+      <span class="ef-offline-badge">✓ Funciona sin conexión a internet</span>
+    </div>
+    <!-- /wp:html -->
+
+  </div>
+</div>
+<!-- /wp:cover -->
+
+<!-- ════════════════════════════════════════════════
+     FUNCIONALIDADES PRINCIPALES (5 cards)
+     ════════════════════════════════════════════════ -->
+
+<!-- wp:group {"style":{"spacing":{"padding":{"top":"72px","bottom":"72px"}},"color":{"background":"#f0f4f8"}},"layout":{"type":"constrained","contentSize":"1100px"}} -->
+<div class="wp-block-group" style="padding:72px 24px;background:#f0f4f8">
+
+  <!-- wp:html -->
+  <div style="text-align:center;margin-bottom:48px">
+    <span class="ef-pill">Funcionalidades</span>
+    <h2 style="font-size:2rem;font-weight:800;color:#1a2744;margin:8px 0 16px">
+      Todo lo que necesita tu taller
+    </h2>
+    <p style="font-size:1.05rem;color:#546e7a;max-width:580px;margin:0 auto">
+      Cinco módulos integrados que cubren el trabajo completo del taller mecánico, desde la recepción del vehículo hasta el cobro de la factura.
+    </p>
+  </div>
+  <!-- /wp:html -->
+
+  <!-- wp:html -->
+  <div class="ef-grid-3" style="max-width:1060px;margin:0 auto">
+
+    <div class="ef-feature-card">
+      <span class="ef-feature-card__icon">🚗</span>
+      <p class="ef-feature-card__title">Vehículos y clientes</p>
+      <p class="ef-feature-card__text">
+        Ficha completa de cada vehículo con propietario, historial de intervenciones, kilómetros y documentación adjunta. Consulta cualquier dato en segundos.
+      </p>
+    </div>
+
+    <div class="ef-feature-card">
+      <span class="ef-feature-card__icon">📋</span>
+      <p class="ef-feature-card__title">Órdenes de trabajo</p>
+      <p class="ef-feature-card__text">
+        Crea órdenes, asígnalas a tu equipo y sigue el estado de cada trabajo en tiempo real. Añade tareas, tiempo dedicado y piezas consumidas.
+      </p>
+    </div>
+
+    <div class="ef-feature-card">
+      <span class="ef-feature-card__icon">🔩</span>
+      <p class="ef-feature-card__title">Stock de piezas</p>
+      <p class="ef-feature-card__text">
+        Inventario actualizado con alertas de stock mínimo y control de consumo por orden de trabajo. Sin sorpresas de última hora.
+      </p>
+    </div>
+
+    <div class="ef-feature-card">
+      <span class="ef-feature-card__icon">📅</span>
+      <p class="ef-feature-card__title">Agenda de citas</p>
+      <p class="ef-feature-card__text">
+        Calendario visual con avisos automáticos cuando una cita cae fuera del horario del taller. Planifica la semana sin solapamientos.
+      </p>
+    </div>
+
+    <div class="ef-feature-card">
+      <span class="ef-feature-card__icon">👥</span>
+      <p class="ef-feature-card__title">Usuarios y roles</p>
+      <p class="ef-feature-card__text">
+        Permisos por rol: administrador, técnico y mecánico. Cada usuario solo ve y hace lo que le corresponde. Seguro y ordenado.
+      </p>
+    </div>
+
+  </div>
+  <!-- /wp:html -->
+
+</div>
+<!-- /wp:group -->
+
+<!-- ════════════════════════════════════════════════
+     SECCIÓN: FUNCIONA SIN CONEXIÓN
+     ════════════════════════════════════════════════ -->
+
+<!-- wp:group {"style":{"spacing":{"padding":{"top":"72px","bottom":"72px"}}},"layout":{"type":"constrained","contentSize":"920px"}} -->
+<div class="wp-block-group" style="padding:72px 24px;background:white">
+
+  <!-- wp:html -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;max-width:900px;margin:0 auto">
+
+    <div>
+      <span class="ef-pill">Sin restricciones</span>
+      <h2 style="font-size:1.85rem;font-weight:800;color:#1a2744;margin:8px 0 20px">
+        Tu taller, siempre operativo
+      </h2>
+      <p style="font-size:1rem;line-height:1.75;color:#546e7a;margin-bottom:20px">
+        EasyFix almacena todos tus datos localmente en el dispositivo. El trabajo diario — órdenes, citas, stock, facturación — funciona <strong style="color:#1a2744">sin necesidad de conexión a internet</strong>.
+      </p>
+      <p style="font-size:1rem;line-height:1.75;color:#546e7a;margin-bottom:28px">
+        La conexión solo se usa cuando quieres sincronizar datos en la nube (versión Pro) o enviar facturas a Verifactu. Nunca dependerás de tener señal para trabajar.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;font-size:.95rem;color:#1a2744">
+          <span style="color:#f57c00;font-size:1.2rem">✓</span>
+          <span>Datos guardados en el dispositivo (SQLite)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;font-size:.95rem;color:#1a2744">
+          <span style="color:#f57c00;font-size:1.2rem">✓</span>
+          <span>Compatible con Android 6.0 o superior</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;font-size:.95rem;color:#1a2744">
+          <span style="color:#f57c00;font-size:1.2rem">✓</span>
+          <span>Sin cuotas mensuales para la versión gratuita</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#fff8f0,#fff3e0);border-radius:20px;padding:40px 32px;text-align:center">
+      <div style="font-size:4rem;margin-bottom:16px">📱</div>
+      <p style="font-size:1.3rem;font-weight:800;color:#1a2744;margin:0 0 8px">Android</p>
+      <p style="font-size:.9rem;color:#546e7a;margin:0 0 24px">Smartphone o tablet</p>
+      <div style="display:flex;flex-direction:column;gap:8px;text-align:left">
+        <div style="background:white;border-radius:8px;padding:10px 16px;font-size:.88rem;color:#37474f;display:flex;justify-content:space-between">
+          <span>Android mínimo</span><strong>6.0</strong>
+        </div>
+        <div style="background:white;border-radius:8px;padding:10px 16px;font-size:.88rem;color:#37474f;display:flex;justify-content:space-between">
+          <span>Espacio libre</span><strong>100 MB</strong>
+        </div>
+        <div style="background:white;border-radius:8px;padding:10px 16px;font-size:.88rem;color:#37474f;display:flex;justify-content:space-between">
+          <span>Conexión internet</span><strong>Opcional</strong>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- /wp:html -->
+
+</div>
+<!-- /wp:group -->
+
+<hr class="ef-divider"/>
+
+<!-- ════════════════════════════════════════════════
+     VERSIONES: GRATIS vs PRO
+     ════════════════════════════════════════════════ -->
+
+<!-- wp:group {"style":{"spacing":{"padding":{"top":"72px","bottom":"72px"}},"color":{"background":"#f0f4f8"}},"layout":{"type":"constrained","contentSize":"900px"}} -->
+<div class="wp-block-group" style="padding:72px 24px;background:#f0f4f8">
+
+  <!-- wp:html -->
+  <div style="text-align:center;margin-bottom:48px">
+    <span class="ef-pill ef-pill--blue">Versiones disponibles</span>
+    <h2 style="font-size:2rem;font-weight:800;color:#1a2744;margin:8px 0 16px">
+      Elige la versión que necesitas
+    </h2>
+    <p style="font-size:1.05rem;color:#546e7a;max-width:580px;margin:0 auto">
+      EasyFix funciona con modelo <em>freemium</em>. La versión gratuita es totalmente funcional para el trabajo diario. La versión Pro añade herramientas avanzadas para talleres que quieren crecer.
+    </p>
+  </div>
+  <!-- /wp:html -->
+
+  <!-- wp:html -->
+  <div class="ef-grid-2" style="max-width:860px;margin:0 auto">
+
+    <!-- ── FREE ── -->
+    <div class="ef-plan-card">
+      <div class="ef-plan-header ef-plan-header--free">
+        <p class="ef-plan-name">EasyFix</p>
+        <p class="ef-plan-price">Gratis <span>para siempre</span></p>
+      </div>
+      <div class="ef-plan-body">
+        <ul class="ef-plan-list">
+          <li>Gestión de vehículos y clientes</li>
+          <li>Órdenes de trabajo</li>
+          <li>Control de piezas y stock</li>
+          <li>Agenda de citas</li>
+          <li>Gestión de usuarios y roles</li>
+          <li class="ef-disabled">Presupuestos de reparación</li>
+          <li class="ef-disabled">Facturación en PDF</li>
+          <li class="ef-disabled">Verifactu (AEAT 2027)</li>
+          <li class="ef-disabled">Reportes y estadísticas</li>
+          <li class="ef-disabled">Sincronización en la nube</li>
+          <li class="ef-disabled">Copias de seguridad</li>
+        </ul>
+        <a class="ef-store-btn" href="https://play.google.com/store/apps/details?id=es.easytic.easyfix" target="_blank" rel="noopener" style="width:100%;justify-content:center">
+          <span class="ef-store-btn__icon">▶</span>
+          <span class="ef-store-btn__text">
+            <span class="ef-store-btn__small">Descargar gratis en</span>
+            <span class="ef-store-btn__name">Google Play</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ── PRO ── -->
+    <div class="ef-plan-card ef-plan-card--pro">
+      <div class="ef-plan-header ef-plan-header--pro">
+        <p class="ef-plan-name">EasyFix Pro</p>
+        <p class="ef-plan-price">Pro <span>taller profesional</span></p>
+      </div>
+      <div class="ef-plan-body">
+        <ul class="ef-plan-list">
+          <li>Todo lo incluido en la versión gratuita</li>
+          <li><strong>Presupuestos de reparación</strong> — con PDF para el cliente</li>
+          <li><strong>Facturación completa</strong> — facturas profesionales en PDF</li>
+          <li><strong>Verifactu integrado</strong> — listo para AEAT 2027</li>
+          <li><strong>Reportes y estadísticas</strong> — facturación y rendimiento</li>
+          <li><strong>Sincronización en la nube</strong> — datos en tiempo real</li>
+          <li><strong>Copias de seguridad</strong> — exporta y restaura cuando quieras</li>
+          <li><strong>Sin publicidad</strong></li>
+        </ul>
+        <a class="ef-store-btn ef-store-btn--amber" href="https://play.google.com/store/apps/details?id=es.easytic.easyfix.pro" target="_blank" rel="noopener" style="width:100%;justify-content:center">
+          <span class="ef-store-btn__icon">⭐</span>
+          <span class="ef-store-btn__text">
+            <span class="ef-store-btn__small">Descargar</span>
+            <span class="ef-store-btn__name">EasyFix Pro</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+  </div>
+  <!-- /wp:html -->
+
+</div>
+<!-- /wp:group -->
+
+<!-- ════════════════════════════════════════════════
+     SECCIÓN: VERIFACTU
+     ════════════════════════════════════════════════ -->
+
+<!-- wp:group {"style":{"spacing":{"padding":{"top":"72px","bottom":"72px"}}},"layout":{"type":"constrained","contentSize":"900px"}} -->
+<div class="wp-block-group" style="padding:72px 24px;background:white">
+
+  <!-- wp:html -->
+  <div style="background:linear-gradient(135deg,#1a2744,#0d1326);border-radius:20px;padding:48px 40px;color:white;display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center">
+
+    <div>
+      <div style="display:inline-block;background:rgba(245,124,0,.2);border:1px solid rgba(245,124,0,.4);color:#ff9800;font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 16px;border-radius:20px;margin-bottom:16px">
+        Obligatorio desde 2027
+      </div>
+      <h2 style="font-size:1.7rem;font-weight:800;color:white;margin:0 0 16px">
+        Verifactu — facturación electrónica AEAT
+      </h2>
+      <p style="font-size:1rem;line-height:1.75;color:rgba(255,255,255,.8);margin:0 0 16px">
+        La AEAT exigirá el sistema de facturación electrónica Verifactu a todos los negocios a partir de 2027. <strong style="color:white">EasyFix Pro ya está preparado</strong>: genera el hash SHA-256 encadenado de cada factura y la registra automáticamente en la AEAT.
+      </p>
+      <p style="font-size:.93rem;color:rgba(255,255,255,.65);margin:0">
+        QR de verificación incluido en todos los PDF de factura · Cola de envío con reintentos automáticos · Integración nativa, sin add-ons externos.
+      </p>
+    </div>
+
+    <div style="text-align:center;flex-shrink:0">
+      <div style="width:100px;height:100px;background:rgba(245,124,0,.15);border:2px solid rgba(245,124,0,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;margin:0 auto 12px">
+        📊
+      </div>
+      <p style="color:#ff9800;font-weight:700;font-size:.9rem;margin:0">Integrado en Pro</p>
+    </div>
+
+  </div>
+  <!-- /wp:html -->
+
+</div>
+<!-- /wp:group -->
+
+<!-- ════════════════════════════════════════════════
+     FAQ RÁPIDO
+     ════════════════════════════════════════════════ -->
+
+<!-- wp:group {"style":{"spacing":{"padding":{"top":"72px","bottom":"72px"}},"color":{"background":"#f0f4f8"}},"layout":{"type":"constrained","contentSize":"820px"}} -->
+<div class="wp-block-group" style="padding:72px 24px;background:#f0f4f8">
+
+  <!-- wp:html -->
+  <div style="text-align:center;margin-bottom:48px">
+    <span class="ef-pill">Preguntas frecuentes</span>
+    <h2 style="font-size:2rem;font-weight:800;color:#1a2744;margin:8px 0">
+      Todo lo que necesitas saber
+    </h2>
+  </div>
+  <!-- /wp:html -->
+
+  <!-- wp:html -->
+  <div style="display:flex;flex-direction:column;gap:16px;max-width:780px;margin:0 auto">
+
+    <details style="background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 12px rgba(13,31,60,.07);cursor:pointer">
+      <summary style="font-weight:700;color:#1a2744;font-size:1rem;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        ¿EasyFix funciona sin internet? <span style="color:#f57c00">▾</span>
+      </summary>
+      <p style="margin:14px 0 0;color:#546e7a;font-size:.95rem;line-height:1.65">
+        Sí. Toda la gestión diaria del taller funciona sin conexión. Los datos se guardan localmente en el dispositivo. La conexión solo es necesaria para la sincronización en la nube (Pro) y el envío de facturas a Verifactu (Pro).
+      </p>
+    </details>
+
+    <details style="background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 12px rgba(13,31,60,.07);cursor:pointer">
+      <summary style="font-weight:700;color:#1a2744;font-size:1rem;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        ¿Qué dispositivos son compatibles? <span style="color:#f57c00">▾</span>
+      </summary>
+      <p style="margin:14px 0 0;color:#546e7a;font-size:.95rem;line-height:1.65">
+        EasyFix requiere Android 6.0 o superior y un mínimo de 100 MB libres. Funciona en smartphones y tablets Android. Actualmente no está disponible para iOS.
+      </p>
+    </details>
+
+    <details style="background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 12px rgba(13,31,60,.07);cursor:pointer">
+      <summary style="font-weight:700;color:#1a2744;font-size:1rem;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        ¿Puedo usar EasyFix con varios empleados? <span style="color:#f57c00">▾</span>
+      </summary>
+      <p style="margin:14px 0 0;color:#546e7a;font-size:.95rem;line-height:1.65">
+        Sí. EasyFix incluye gestión de usuarios con tres roles (administrador, técnico, mecánico). Cada usuario inicia sesión con sus credenciales y tiene acceso solo a las funciones que le corresponden.
+      </p>
+    </details>
+
+    <details style="background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 12px rgba(13,31,60,.07);cursor:pointer">
+      <summary style="font-weight:700;color:#1a2744;font-size:1rem;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        ¿Qué diferencia hay entre la versión gratuita y Pro? <span style="color:#f57c00">▾</span>
+      </summary>
+      <p style="margin:14px 0 0;color:#546e7a;font-size:.95rem;line-height:1.65">
+        La versión gratuita incluye gestión completa de vehículos, órdenes de trabajo, stock y citas. La versión Pro añade presupuestos, facturación, Verifactu, estadísticas, sincronización en la nube y copias de seguridad, además de eliminar la publicidad.
+      </p>
+    </details>
+
+    <details style="background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 12px rgba(13,31,60,.07);cursor:pointer">
+      <summary style="font-weight:700;color:#1a2744;font-size:1rem;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        ¿Cómo funciona Verifactu en EasyFix Pro? <span style="color:#f57c00">▾</span>
+      </summary>
+      <p style="margin:14px 0 0;color:#546e7a;font-size:.95rem;line-height:1.65">
+        Cuando activas Verifactu, cada factura genera automáticamente un hash SHA-256 encadenado y se registra en el sistema de la AEAT. El PDF de la factura incluye el código QR de verificación y el texto legal obligatorio. Todo el proceso es transparente — no necesitas hacer nada adicional.
+      </p>
+    </details>
+
+  </div>
+  <!-- /wp:html -->
+
+  <!-- wp:paragraph {"align":"center","style":{"typography":{"fontSize":"0.95rem"},"color":{"text":"#546e7a"},"spacing":{"margin":{"top":"32px"}}}} -->
+  <p style="text-align:center;font-size:.95rem;color:#546e7a;margin-top:32px">
+    ¿Más preguntas? Consulta el <a href="/productos/easyfix/manual/" style="color:#1565c0;font-weight:600">manual de usuario</a> o <a href="/contacto/" style="color:#1565c0;font-weight:600">escríbenos directamente</a>.
+  </p>
+  <!-- /wp:paragraph -->
+
+</div>
+<!-- /wp:group -->
+
+<!-- ════════════════════════════════════════════════
+     CTA FINAL — Descargar
+     ════════════════════════════════════════════════ -->
+
+<!-- wp:group {"style":{"spacing":{"padding":{"top":"64px","bottom":"80px"}}},"layout":{"type":"constrained","contentSize":"860px"}} -->
+<div class="wp-block-group" style="padding:64px 24px 80px;background:white">
+
+  <!-- wp:html -->
+  <div class="ef-final-cta">
+    <div style="font-size:3rem;margin-bottom:16px">🔧</div>
+    <h2>Empieza hoy. Es gratis.</h2>
+    <p>
+      Descarga EasyFix ahora y ten tu taller organizado en menos de 10 minutos. Sin registro previo, sin tarjeta de crédito. Cuando necesites más, EasyFix Pro está ahí.
+    </p>
+    <div class="ef-download-row">
+      <a class="ef-store-btn" href="https://play.google.com/store/apps/details?id=es.easytic.easyfix" target="_blank" rel="noopener">
+        <span class="ef-store-btn__icon">▶</span>
+        <span class="ef-store-btn__text">
+          <span class="ef-store-btn__small">Descargar gratis en</span>
+          <span class="ef-store-btn__name">Google Play</span>
+        </span>
+      </a>
+      <a class="ef-store-btn ef-store-btn--amber" href="https://play.google.com/store/apps/details?id=es.easytic.easyfix.pro" target="_blank" rel="noopener">
+        <span class="ef-store-btn__icon">⭐</span>
+        <span class="ef-store-btn__text">
+          <span class="ef-store-btn__small">Versión profesional</span>
+          <span class="ef-store-btn__name">EasyFix Pro</span>
+        </span>
+      </a>
+    </div>
+    <p style="margin-top:24px;font-size:.88rem;opacity:.6">
+      ¿Tienes un proyecto digital similar para tu sector? <a href="/contacto/" style="color:#ff9800;font-weight:600">Cuéntanos tu idea →</a>
+    </p>
+  </div>
+  <!-- /wp:html -->
+
+</div>
+<!-- /wp:group -->

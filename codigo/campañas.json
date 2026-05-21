@@ -1,0 +1,24 @@
+{
+    "@context": "https://schema.org/",
+    "@type": "Service",
+    "name": "Campañas de comunicación online",
+    "description": "En Easytic diseñamos campañas de comunicación online que no solo comunican: conectan. Ya sea para lanzar un producto, reforzar tu marca o impulsar tus ventas, creamos mensajes claros, coherentes y efectivos, distribuidos por los canales adecuados y medidos con precisión.",
+    "provider": {
+        "@type": "Organization",
+        "name": "easytic"
+    },
+    "areaServed": {
+        "@type": "AdministrativeArea",
+        "name": "Huelva"
+    },
+    "offers": {
+        "@type": "Offer",
+        "price": 1000,
+        "priceCurrency": "EUR",
+        "availability": "InStock",
+        "itemOffered": {
+            "@type": "Service",
+            "name": "Diseño Web Corporativo"
+        }
+    }
+}

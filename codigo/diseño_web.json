@@ -1,0 +1,24 @@
+{
+    "@context": "https://schema.org/",
+    "@type": "Service",
+    "name": "Servicio de Diseño Web Profesional",
+    "description": "Ofrecemos diseño web responsivo y moderno para empresas de todos los tamaños.",
+    "provider": {
+        "@type": "Organization",
+        "name": "easytic"
+    },
+    "areaServed": {
+        "@type": "AdministrativeArea",
+        "name": "Huelva"
+    },
+    "offers": {
+        "@type": "Offer",
+        "price": 1000,
+        "priceCurrency": "EUR",
+        "availability": "InStock",
+        "itemOffered": {
+            "@type": "Service",
+            "name": "Diseño Web Corporativo"
+        }
+    }
+}
