@@ -336,6 +336,11 @@ def _run_tool(name: str, inputs: dict) -> Any:
 
 class ContableAgent:
     def __init__(self):
+        if not config.ANTHROPIC_API_KEY:
+            raise RuntimeError(
+                "ANTHROPIC_API_KEY no configurada. "
+                "Añádela al .env o exporta la variable de entorno."
+            )
         self._client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
         self._messages: list[dict] = []
 
