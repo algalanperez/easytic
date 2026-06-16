@@ -96,6 +96,17 @@ def upsert_liquidacion(modelo: str, ejercicio: int, periodo: str, datos: dict) -
     conn.commit()
 
 
+def list_liquidaciones(ejercicio: int | None = None) -> list[dict]:
+    where = f"WHERE ejercicio = {int(ejercicio)}" if ejercicio else ""
+    rows = get_conn().execute(f"""
+        SELECT modelo, ejercicio, periodo, estado, presentado_en, created_at
+        FROM liquidaciones
+        {where}
+        ORDER BY ejercicio DESC, modelo, periodo
+    """).fetchall()
+    return [dict(r) for r in rows]
+
+
 def get_liquidacion(modelo: str, ejercicio: int, periodo: str) -> dict | None:
     row = get_conn().execute(
         "SELECT * FROM liquidaciones WHERE modelo=? AND ejercicio=? AND periodo=?",

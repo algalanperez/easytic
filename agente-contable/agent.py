@@ -15,7 +15,7 @@ import anthropic
 import config
 from connectors import drive, gmail
 from database import db
-from tools import db_tools, parse_invoice, tax_calendar
+from tools import db_tools, parse_invoice, tax_calendar, tax_models
 
 # ── Definición de tools para la API de Claude ─────────────────────────────────
 
@@ -151,6 +151,62 @@ TOOLS: list[dict] = [
             },
         },
     },
+    {
+        "name": "calculate_303",
+        "description": (
+            "Calcula las casillas del Modelo 303 (IVA trimestral) para un ejercicio y trimestre. "
+            "Devuelve bases, cuotas devengadas por tipo (21/10/4%), IVA deducible y resultado a ingresar/compensar."
+        ),
+        "input_schema": {
+            "type": "object",
+            "required": ["ejercicio", "periodo"],
+            "properties": {
+                "ejercicio": {"type": "integer", "description": "Año fiscal, ej. 2025"},
+                "periodo":   {"type": "string", "enum": ["Q1", "Q2", "Q3", "Q4"]},
+            },
+        },
+    },
+    {
+        "name": "calculate_111",
+        "description": (
+            "Calcula las casillas del Modelo 111 (retenciones IRPF trimestral) para un ejercicio y trimestre. "
+            "Incluye retenciones de actividades profesionales (autónomos/freelance) detectadas en facturas recibidas."
+        ),
+        "input_schema": {
+            "type": "object",
+            "required": ["ejercicio", "periodo"],
+            "properties": {
+                "ejercicio": {"type": "integer"},
+                "periodo":   {"type": "string", "enum": ["Q1", "Q2", "Q3", "Q4"]},
+            },
+        },
+    },
+    {
+        "name": "generate_model_draft",
+        "description": (
+            "Calcula un modelo fiscal (303 o 111) y guarda el borrador en la base de datos. "
+            "Devuelve el JSON completo con todas las casillas listo para revisión o presentación."
+        ),
+        "input_schema": {
+            "type": "object",
+            "required": ["modelo", "ejercicio", "periodo"],
+            "properties": {
+                "modelo":    {"type": "string", "enum": ["303", "111"]},
+                "ejercicio": {"type": "integer"},
+                "periodo":   {"type": "string", "enum": ["Q1", "Q2", "Q3", "Q4"]},
+            },
+        },
+    },
+    {
+        "name": "list_liquidaciones",
+        "description": "Lista todos los borradores y liquidaciones fiscales guardados en la base de datos.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "ejercicio": {"type": "integer", "description": "Filtrar por año fiscal (opcional)"},
+            },
+        },
+    },
 ]
 
 SYSTEM_PROMPT = f"""Eres el asistente contable y fiscal de {config.EMPRESA_NOMBRE} (NIF: {config.EMPRESA_NIF}).
@@ -159,16 +215,19 @@ Tu misión:
 1. Recopilar y centralizar facturas emitidas y recibidas desde Google Drive, Gmail y otros orígenes.
 2. Mantener actualizado el libro contable en la base de datos SQLite.
 3. Calcular la posición fiscal trimestral: IVA (Modelo 303), IRPF (Modelo 111).
-4. Alertar sobre vencimientos fiscales próximos.
-5. Responder preguntas sobre la situación contable y fiscal de la empresa.
+4. Generar borradores de liquidaciones fiscales listos para presentar a la Agencia Tributaria.
+5. Alertar sobre vencimientos fiscales próximos.
+6. Responder preguntas sobre la situación contable y fiscal de la empresa.
 
 Normas:
 - Usa siempre fechas en formato ISO (YYYY-MM-DD).
 - Cuando proceses facturas de Drive o Gmail, guárdalas con upsert_factura antes de responder.
-- Para calcular el resultado de IVA de un trimestre: usa resumen_periodo con el rango de fechas del trimestre.
+- Para calcular el resultado de IVA de un trimestre usa calculate_303; para retenciones usa calculate_111.
+- Para generar y guardar el borrador oficial usa generate_model_draft, que persiste el resultado en la BD.
 - El IVA general en España es 21%. Servicios digitales: 21%. Reducido: 10%. Superreducido: 4%.
 - Retención IRPF profesionales: 15% general (7% primeros 3 años de actividad).
 - Nunca inventes datos; si no tienes información, dilo y sugiere qué fuente consultar.
+- Cuando el usuario pregunte "¿qué modelos tengo pendientes?", usa list_liquidaciones y get_upcoming_deadlines.
 
 Ejercicio fiscal en curso: {config.EMPRESA_EJERCICIO}.
 """
@@ -242,6 +301,30 @@ def _run_tool(name: str, inputs: dict) -> Any:
     elif name == "get_upcoming_deadlines":
         return tax_calendar.get_upcoming_deadlines(
             days_ahead=inputs.get("days_ahead", 30),
+            ejercicio=inputs.get("ejercicio"),
+        )
+
+    elif name == "calculate_303":
+        return tax_models.calculate_303(
+            ejercicio=inputs["ejercicio"],
+            periodo=inputs["periodo"],
+        )
+
+    elif name == "calculate_111":
+        return tax_models.calculate_111(
+            ejercicio=inputs["ejercicio"],
+            periodo=inputs["periodo"],
+        )
+
+    elif name == "generate_model_draft":
+        return tax_models.generate_model_draft(
+            modelo=inputs["modelo"],
+            ejercicio=inputs["ejercicio"],
+            periodo=inputs["periodo"],
+        )
+
+    elif name == "list_liquidaciones":
+        return tax_models.list_liquidaciones(
             ejercicio=inputs.get("ejercicio"),
         )
 
