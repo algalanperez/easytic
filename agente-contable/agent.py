@@ -16,6 +16,7 @@ import config
 from connectors import drive, gmail
 from database import db
 from tools import db_tools, parse_invoice, tax_calendar, tax_models
+from tools import modelo_200, sii_check, export_aeat
 
 # ── Definición de tools para la API de Claude ─────────────────────────────────
 
@@ -207,6 +208,65 @@ TOOLS: list[dict] = [
             },
         },
     },
+    {
+        "name": "calculate_200",
+        "description": (
+            "Calcula el Modelo 200 (Impuesto de Sociedades) para un ejercicio anual. "
+            "Usa las facturas registradas para derivar el resultado contable y aplica el tipo de gravamen. "
+            "Los ajustes fiscales, BINs y deducciones se pasan manualmente cuando el usuario los conoce."
+        ),
+        "input_schema": {
+            "type": "object",
+            "required": ["ejercicio"],
+            "properties": {
+                "ejercicio":         {"type": "integer", "description": "Año fiscal"},
+                "tipo_gravamen":     {"type": "number",  "description": "Tipo IS en % (default 25)"},
+                "ajustes_fiscales":  {"type": "number",  "description": "Ajustes positivos/negativos al resultado contable"},
+                "bins_anteriores":   {"type": "number",  "description": "Bases imponibles negativas de ejercicios anteriores a compensar"},
+                "deducciones":       {"type": "number",  "description": "Deducciones en cuota (I+D, etc.)"},
+            },
+        },
+    },
+    {
+        "name": "check_sii_compliance",
+        "description": (
+            "Verifica el cumplimiento SII/Verifactu de las facturas registradas. "
+            "Detecta campos obligatorios vacíos, NIFs con formato incorrecto, "
+            "tipos de IVA inusuales y totales inconsistentes."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "fecha_desde": {"type": "string", "description": "YYYY-MM-DD"},
+                "fecha_hasta": {"type": "string", "description": "YYYY-MM-DD"},
+                "tipo":        {"type": "string", "enum": ["emitida", "recibida"],
+                                "description": "Filtrar por tipo de factura (opcional)"},
+            },
+        },
+    },
+    {
+        "name": "export_model",
+        "description": (
+            "Exporta un modelo fiscal a fichero: 303/111 → XML, 200 → JSON, facturas → CSV. "
+            "Guarda el fichero en disco y devuelve la ruta y el contenido."
+        ),
+        "input_schema": {
+            "type": "object",
+            "required": ["modelo", "ejercicio"],
+            "properties": {
+                "modelo":           {"type": "string", "description": "'303'|'111'|'200'|'facturas'"},
+                "ejercicio":        {"type": "integer"},
+                "periodo":          {"type": "string", "description": "Q1..Q4 para 303/111; anual para 200"},
+                "output_path":      {"type": "string", "description": "Ruta de salida (opcional, se genera automáticamente)"},
+                "tipo_gravamen":    {"type": "number"},
+                "ajustes_fiscales": {"type": "number"},
+                "bins_anteriores":  {"type": "number"},
+                "deducciones":      {"type": "number"},
+                "fecha_desde":      {"type": "string", "description": "Solo para modelo='facturas'"},
+                "fecha_hasta":      {"type": "string", "description": "Solo para modelo='facturas'"},
+            },
+        },
+    },
 ]
 
 SYSTEM_PROMPT = f"""Eres el asistente contable y fiscal de {config.EMPRESA_NOMBRE} (NIF: {config.EMPRESA_NIF}).
@@ -214,20 +274,24 @@ SYSTEM_PROMPT = f"""Eres el asistente contable y fiscal de {config.EMPRESA_NOMBR
 Tu misión:
 1. Recopilar y centralizar facturas emitidas y recibidas desde Google Drive, Gmail y otros orígenes.
 2. Mantener actualizado el libro contable en la base de datos SQLite.
-3. Calcular la posición fiscal trimestral: IVA (Modelo 303), IRPF (Modelo 111).
-4. Generar borradores de liquidaciones fiscales listos para presentar a la Agencia Tributaria.
-5. Alertar sobre vencimientos fiscales próximos.
-6. Responder preguntas sobre la situación contable y fiscal de la empresa.
+3. Calcular modelos fiscales: IVA (303), IRPF (111), Impuesto de Sociedades (200).
+4. Verificar cumplimiento SII/Verifactu de las facturas antes de presentar.
+5. Exportar borradores a XML/JSON/CSV para la Agencia Tributaria o el asesor.
+6. Alertar sobre vencimientos fiscales próximos.
+7. Responder preguntas sobre la situación contable y fiscal de la empresa.
 
-Normas:
+Normas de uso de herramientas:
 - Usa siempre fechas en formato ISO (YYYY-MM-DD).
-- Cuando proceses facturas de Drive o Gmail, guárdalas con upsert_factura antes de responder.
-- Para calcular el resultado de IVA de un trimestre usa calculate_303; para retenciones usa calculate_111.
-- Para generar y guardar el borrador oficial usa generate_model_draft, que persiste el resultado en la BD.
-- El IVA general en España es 21%. Servicios digitales: 21%. Reducido: 10%. Superreducido: 4%.
-- Retención IRPF profesionales: 15% general (7% primeros 3 años de actividad).
-- Nunca inventes datos; si no tienes información, dilo y sugiere qué fuente consultar.
-- Cuando el usuario pregunte "¿qué modelos tengo pendientes?", usa list_liquidaciones y get_upcoming_deadlines.
+- Facturas de Drive/Gmail: guárdalas con upsert_factura antes de calcular nada.
+- Cálculos trimestrales: calculate_303 o calculate_111; anual IS: calculate_200.
+- Para borrador persistido: generate_model_draft (también admite modelo='200').
+- Antes de presentar un trimestre: ejecuta check_sii_compliance para ese período.
+- Para exportar: export_model con modelo='303'|'111'|'200'|'facturas'.
+- Modelo 200: advierte siempre que ajustes fiscales, BINs y deducciones requieren revisión con asesor.
+- El IVA general es 21%; reducido 10%; superreducido 4%.
+- Retención IRPF profesionales: 15% (7% primeros 3 años de actividad).
+- Tipo IS general: 25%; empresas nuevas (primeros 2 ejercicios con base positiva): 15%.
+- Nunca inventes datos; si falta información, indícalo y sugiere la fuente.
 
 Ejercicio fiscal en curso: {config.EMPRESA_EJERCICIO}.
 """
@@ -326,6 +390,36 @@ def _run_tool(name: str, inputs: dict) -> Any:
     elif name == "list_liquidaciones":
         return tax_models.list_liquidaciones(
             ejercicio=inputs.get("ejercicio"),
+        )
+
+    elif name == "calculate_200":
+        return modelo_200.calculate_200(
+            ejercicio=inputs["ejercicio"],
+            tipo_gravamen=inputs.get("tipo_gravamen", 25.0),
+            ajustes_fiscales=inputs.get("ajustes_fiscales", 0.0),
+            bins_anteriores=inputs.get("bins_anteriores", 0.0),
+            deducciones=inputs.get("deducciones", 0.0),
+        )
+
+    elif name == "check_sii_compliance":
+        return sii_check.check_sii_compliance(
+            fecha_desde=inputs.get("fecha_desde"),
+            fecha_hasta=inputs.get("fecha_hasta"),
+            tipo=inputs.get("tipo"),
+        )
+
+    elif name == "export_model":
+        modelo = inputs["modelo"]
+        ejercicio = inputs["ejercicio"]
+        periodo = inputs.get("periodo", "anual")
+        kwargs = {k: v for k, v in inputs.items()
+                  if k not in ("modelo", "ejercicio", "periodo", "output_path")}
+        return export_aeat.export_model(
+            modelo=modelo,
+            ejercicio=ejercicio,
+            periodo=periodo,
+            output_path=inputs.get("output_path"),
+            **kwargs,
         )
 
     else:

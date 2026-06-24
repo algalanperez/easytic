@@ -3,15 +3,21 @@
 Punto de entrada del Agente Contable de EasyTic.
 
 Modos:
-  python main.py                        → chat interactivo (requiere ANTHROPIC_API_KEY)
-  python main.py --alertas              → vencimientos próximos (30 días)
-  python main.py --calc 303 --periodo Q2           → calcula Modelo 303
-  python main.py --calc 111 --periodo Q2           → calcula Modelo 111
-  python main.py --draft 303 --periodo Q2          → calcula y guarda borrador
-  python main.py --draft 111 --periodo Q2
-  python main.py --liquidaciones                   → lista borradores guardados
-  python main.py --sync Q1              → importa facturas Drive+Gmail (requiere OAuth)
-  python main.py --init-db              → crea/verifica esquema BD
+  python main.py                          → chat interactivo (requiere ANTHROPIC_API_KEY)
+  python main.py --alertas                → vencimientos próximos (30 días)
+  python main.py --calc 303 --periodo Q2  → calcula Modelo 303
+  python main.py --calc 111 --periodo Q2  → calcula Modelo 111
+  python main.py --calc 200               → calcula Impuesto de Sociedades
+  python main.py --draft 303 --periodo Q2 → calcula y guarda borrador
+  python main.py --draft 200              → borrador IS anual
+  python main.py --sii-check              → verifica cumplimiento SII/Verifactu
+  python main.py --sii-check --periodo Q2 → SII sólo del trimestre
+  python main.py --export 303 --periodo Q2 → exporta a XML
+  python main.py --export 200             → exporta IS a JSON
+  python main.py --export facturas --desde 2025-01-01 --hasta 2025-12-31 → CSV
+  python main.py --liquidaciones          → lista borradores guardados
+  python main.py --sync Q1               → importa facturas Drive+Gmail (requiere OAuth)
+  python main.py --init-db               → crea/verifica esquema BD
 """
 import argparse
 import sys
@@ -19,6 +25,9 @@ import sys
 from database.db import get_conn
 from tools.tax_calendar import get_upcoming_deadlines, quarter_date_range
 from tools.tax_models import calculate_303, calculate_111, generate_model_draft, list_liquidaciones
+from tools.modelo_200 import calculate_200
+from tools.sii_check import check_sii_compliance
+from tools.export_aeat import export_model
 import config
 # ContableAgent se importa dentro de cmd_chat/cmd_sync para no requerir API key en modos CLI
 
@@ -84,24 +93,113 @@ def _print_111(r: dict) -> None:
 
 
 def cmd_calc(modelo: str, periodo: str, ejercicio: int) -> None:
-    periodo = periodo.upper()
+    modelo = modelo.upper()
+    periodo = periodo.upper() if periodo else "Q1"
     if modelo == "303":
         _print_303(calculate_303(ejercicio, periodo))
     elif modelo == "111":
         _print_111(calculate_111(ejercicio, periodo))
+    elif modelo == "200":
+        _print_200(calculate_200(ejercicio))
     else:
-        print(f"Modelo no soportado: {modelo}. Use 303 o 111.", file=sys.stderr)
+        print(f"Modelo no soportado: {modelo}. Use 303, 111 o 200.", file=sys.stderr)
         sys.exit(1)
 
 
 def cmd_draft(modelo: str, periodo: str, ejercicio: int) -> None:
-    periodo = periodo.upper()
+    modelo = modelo.upper()
+    periodo = periodo.upper() if periodo else ("anual" if modelo == "200" else "Q1")
     r = generate_model_draft(modelo, ejercicio, periodo)
     if modelo == "303":
         _print_303(r)
-    else:
+    elif modelo == "111":
         _print_111(r)
+    elif modelo == "200":
+        _print_200(r)
+    else:
+        print(f"Modelo no soportado: {modelo}.", file=sys.stderr)
+        sys.exit(1)
     print(f"  Borrador guardado en BD: {config.DB_PATH}\n")
+
+
+def _print_200(r: dict) -> None:
+    c = r["casillas"]
+    print(f"\n{_SEP}")
+    print(f"  MODELO 200 — IMPUESTO DE SOCIEDADES {r['ejercicio']}")
+    print(f"  {r['empresa_nombre']}  NIF: {r['empresa_nif']}")
+    print(f"  Período: {r['fecha_desde']} → {r['fecha_hasta']}")
+    print(_SEP)
+    inp = r["inputs"]
+    print(f"  CUENTA DE RESULTADOS (simplificada)")
+    print(f"    Ingresos (fact. emitidas):     {inp['ingresos']:>12,.2f} €")
+    print(f"    Gastos   (fact. recibidas):    {inp['gastos']:>12,.2f} €")
+    print(f"    {'·'*48}")
+    print(f"    [01] Resultado contable:       {c['01_resultado_contable']:>12,.2f} €")
+    print(f"  LIQUIDACIÓN")
+    print(f"    Ajustes fiscales:              {inp['ajustes_fiscales']:>12,.2f} €")
+    print(f"    [550] Base imponible previa:   {c['550_base_imponible_previa']:>12,.2f} €")
+    print(f"    BINs a compensar:              {inp['bins_anteriores']:>12,.2f} €")
+    print(f"    [552] Base imponible:          {c['552_base_imponible']:>12,.2f} €")
+    print(f"    [562] Tipo de gravamen:        {c['562_tipo_gravamen']:>11,.1f} %")
+    print(f"    [599] Cuota íntegra:           {c['599_cuota_integra']:>12,.2f} €")
+    print(f"    Deducciones:                   {inp['deducciones']:>12,.2f} €")
+    print(f"    [601] Cuota líquida:           {c['601_cuota_liquida']:>12,.2f} €")
+    print(f"    [610] Retenciones soportadas:  {c['610_retenciones']:>12,.2f} €")
+    signo = "A INGRESAR" if r["resumen"]["signo"] == "ingreso" else "A DEVOLVER"
+    print(f"  {'═'*54}")
+    print(f"  [621] CUOTA DIFERENCIAL: {c['621_cuota_diferencial']:>12,.2f} €  →  {signo}")
+    print(f"  {'═'*54}")
+    if r.get("advertencias"):
+        print(f"\n  ADVERTENCIAS:")
+        for adv in r["advertencias"]:
+            print(f"    ⚠  {adv}")
+    print(f"\n  Plazo de presentación: 25 de julio {r['ejercicio'] + 1}\n")
+
+
+def cmd_sii_check(periodo: str | None, ejercicio: int) -> None:
+    if periodo:
+        fecha_desde, fecha_hasta = quarter_date_range(ejercicio, periodo.upper())
+    else:
+        fecha_desde = f"{ejercicio}-01-01"
+        fecha_hasta = f"{ejercicio}-12-31"
+
+    r = check_sii_compliance(fecha_desde=fecha_desde, fecha_hasta=fecha_hasta)
+    res = r["resumen"]
+    print(f"\n{_SEP}")
+    print(f"  VERIFICACIÓN SII/VERIFACTU  {fecha_desde} → {fecha_hasta}")
+    print(_SEP)
+    print(f"  Total facturas:       {res['total_facturas']:>6}")
+    print(f"  Facturas correctas:   {res['facturas_ok']:>6}  ({res['porcentaje_cumplimiento']}%)")
+    print(f"  Con incidencias:      {res['facturas_con_errores']:>6}")
+    if r["facturas_error"]:
+        print(f"\n  INCIDENCIAS DETECTADAS:")
+        for f in r["facturas_error"]:
+            print(f"    [{f['tipo'][:3].upper()}] {f['numero']:20}  {f['fecha']}  {f['emisor'][:30]}")
+            for e in f["errores"]:
+                print(f"         → {e}")
+    print(f"\n  RECOMENDACIONES:")
+    for rec in r["recomendaciones"]:
+        print(f"    • {rec}")
+    print(f"{_SEP}\n")
+
+
+def cmd_export(modelo: str, periodo: str, ejercicio: int,
+               desde: str | None, hasta: str | None, output: str | None) -> None:
+    modelo = modelo.upper()
+    kwargs: dict = {}
+    if modelo == "FACTURAS":
+        if not (desde and hasta):
+            print("Para exportar facturas usa --desde YYYY-MM-DD --hasta YYYY-MM-DD", file=sys.stderr)
+            sys.exit(1)
+        kwargs = {"fecha_desde": desde, "fecha_hasta": hasta}
+    result = export_model(
+        modelo=modelo,
+        ejercicio=ejercicio,
+        periodo=periodo.upper() if periodo else "anual",
+        output_path=output,
+        **kwargs,
+    )
+    print(f"\n  Exportado: {result['fichero']}  ({result['bytes']} bytes)  [{result['formato'].upper()}]\n")
 
 
 def cmd_liquidaciones(ejercicio: int | None) -> None:
@@ -169,7 +267,11 @@ def main() -> None:
         epilog=(
             "Ejemplos:\n"
             "  python main.py --calc 303 --periodo Q2\n"
-            "  python main.py --draft 111 --periodo Q2 --ejercicio 2025\n"
+            "  python main.py --calc 200\n"
+            "  python main.py --draft 303 --periodo Q2 --ejercicio 2025\n"
+            "  python main.py --sii-check --periodo Q2\n"
+            "  python main.py --export 303 --periodo Q2\n"
+            "  python main.py --export facturas --desde 2025-01-01 --hasta 2025-12-31\n"
             "  python main.py --liquidaciones\n"
             "  python main.py --alertas\n"
             "  python main.py --sync Q2            (requiere OAuth + API key)\n"
@@ -178,15 +280,25 @@ def main() -> None:
     )
     parser.add_argument("--alertas",       action="store_true",
                         help="Muestra vencimientos fiscales próximos (30 días)")
-    parser.add_argument("--calc",          metavar="303|111",
+    parser.add_argument("--calc",          metavar="303|111|200",
                         help="Calcula el modelo fiscal indicado (sin guardar)")
-    parser.add_argument("--draft",         metavar="303|111",
+    parser.add_argument("--draft",         metavar="303|111|200",
                         help="Calcula y guarda borrador en BD")
-    parser.add_argument("--periodo",       metavar="Q1|Q2|Q3|Q4", default="Q1",
-                        help="Trimestre (default: Q1)")
+    parser.add_argument("--sii-check",     action="store_true", dest="sii_check",
+                        help="Verifica cumplimiento SII/Verifactu")
+    parser.add_argument("--export",        metavar="303|111|200|facturas",
+                        help="Exporta modelo a XML/JSON/CSV")
+    parser.add_argument("--periodo",       metavar="Q1|Q2|Q3|Q4",
+                        help="Trimestre para 303/111/export (default: Q1)")
     parser.add_argument("--ejercicio",     metavar="YYYY", type=int,
                         default=config.EMPRESA_EJERCICIO,
                         help=f"Año fiscal (default: {config.EMPRESA_EJERCICIO})")
+    parser.add_argument("--desde",         metavar="YYYY-MM-DD",
+                        help="Fecha inicio (para --export facturas)")
+    parser.add_argument("--hasta",         metavar="YYYY-MM-DD",
+                        help="Fecha fin (para --export facturas)")
+    parser.add_argument("--output",        metavar="FICHERO",
+                        help="Ruta de salida para --export")
     parser.add_argument("--liquidaciones", action="store_true",
                         help="Lista borradores/liquidaciones guardados")
     parser.add_argument("--sync",          metavar="Q1|Q2|Q3|Q4",
@@ -197,10 +309,16 @@ def main() -> None:
 
     get_conn()  # inicializa BD en todos los modos
 
+    periodo = args.periodo or ("anual" if (args.calc or args.export or "") == "200" else "Q1")
+
     if args.calc:
-        cmd_calc(args.calc, args.periodo, args.ejercicio)
+        cmd_calc(args.calc, periodo, args.ejercicio)
     elif args.draft:
-        cmd_draft(args.draft, args.periodo, args.ejercicio)
+        cmd_draft(args.draft, periodo, args.ejercicio)
+    elif args.sii_check:
+        cmd_sii_check(args.periodo, args.ejercicio)
+    elif args.export:
+        cmd_export(args.export, periodo, args.ejercicio, args.desde, args.hasta, args.output)
     elif args.liquidaciones:
         cmd_liquidaciones(args.ejercicio if args.ejercicio != config.EMPRESA_EJERCICIO else None)
     elif args.alertas:

@@ -3,6 +3,7 @@ Cálculo de los modelos fiscales españoles y generación de borradores.
 
 Modelo 303 — Autoliquidación trimestral del IVA
 Modelo 111 — Retenciones e ingresos a cuenta del IRPF (actividades profesionales)
+Modelo 200 — Impuesto de Sociedades anual (delegado a tools.modelo_200)
 """
 from __future__ import annotations
 
@@ -175,21 +176,32 @@ def calculate_111(ejercicio: int, periodo: str) -> dict[str, Any]:
 
 # ── generate_model_draft ──────────────────────────────────────────────────────
 
-def generate_model_draft(modelo: str, ejercicio: int, periodo: str) -> dict[str, Any]:
+def generate_model_draft(
+    modelo: str,
+    ejercicio: int,
+    periodo: str,
+    **kwargs: Any,
+) -> dict[str, Any]:
     """
     Calcula el modelo fiscal, lo persiste en la tabla liquidaciones como borrador
     y devuelve el resultado completo.
 
-    modelo:   '303' | '111'
-    periodo:  'Q1' | 'Q2' | 'Q3' | 'Q4'
+    modelo:   '303' | '111' | '200'
+    periodo:  'Q1'|'Q2'|'Q3'|'Q4' para 303/111; 'anual' para 200
+    kwargs:   para Modelo 200 — ajustes_fiscales, bins_anteriores, deducciones, tipo_gravamen
     """
+    from tools.modelo_200 import calculate_200
+
     modelo = modelo.strip()
     if modelo == "303":
         datos = calculate_303(ejercicio, periodo)
     elif modelo == "111":
         datos = calculate_111(ejercicio, periodo)
+    elif modelo == "200":
+        periodo = "anual"
+        datos = calculate_200(ejercicio, **kwargs)
     else:
-        raise ValueError(f"Modelo no soportado: {modelo!r}. Use '303' o '111'.")
+        raise ValueError(f"Modelo no soportado: {modelo!r}. Use '303', '111' o '200'.")
 
     db.upsert_liquidacion(modelo, ejercicio, periodo, datos)
 
