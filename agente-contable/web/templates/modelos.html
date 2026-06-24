@@ -21,6 +21,8 @@
             <select name="modelo" required>
               <option value="303">303 — IVA trimestral</option>
               <option value="111">111 — IRPF trimestral</option>
+              <option value="390">390 — Resumen anual IVA</option>
+              <option value="190">190 — Resumen anual retenciones</option>
               <option value="200">200 — IS anual</option>
             </select>
           </div>
@@ -54,6 +56,8 @@
             <select name="modelo" required>
               <option value="303">303 — XML</option>
               <option value="111">111 — XML</option>
+              <option value="390">390 — XML (anual IVA)</option>
+              <option value="190">190 — XML (anual ret.)</option>
               <option value="200">200 — JSON</option>
             </select>
           </div>
@@ -96,6 +100,12 @@
         111 {{ p }}/{{ ejercicio }} ↓
       </a>
       {% endfor %}
+      <a href="/modelos/download/390/{{ ejercicio }}/anual" class="btn btn-neutral btn-sm">
+        390 {{ ejercicio }} ↓
+      </a>
+      <a href="/modelos/download/190/{{ ejercicio }}/anual" class="btn btn-neutral btn-sm">
+        190 {{ ejercicio }} ↓
+      </a>
       <a href="/modelos/download/200/{{ ejercicio }}/anual" class="btn btn-neutral btn-sm">
         200 {{ ejercicio }} ↓
       </a>

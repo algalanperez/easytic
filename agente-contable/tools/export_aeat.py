@@ -25,6 +25,8 @@ import config
 from database import db
 from tools.tax_models import calculate_303, calculate_111
 from tools.modelo_200 import calculate_200
+from tools.modelo_390 import calculate_390
+from tools.modelo_190 import calculate_190
 
 _PERIODOS_AEAT = {"Q1": "1T", "Q2": "2T", "Q3": "3T", "Q4": "4T", "anual": "0A"}
 
@@ -83,6 +85,99 @@ def export_111_xml(ejercicio: int, periodo: str) -> str:
 
     _t(root, "C28_TotalIngresar",  _n(c["28_total_ingresar"]))
     _t(root, "FechaGeneracion",    date.today().isoformat())
+    indent(root, space="  ")
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(root, encoding="unicode")
+
+
+# ── Modelo 390 → XML ──────────────────────────────────────────────────────────
+
+def export_390_xml(ejercicio: int) -> str:
+    datos = calculate_390(ejercicio)
+    c = datos["casillas"]
+
+    root = Element("T39000")
+    _t(root, "Ejercicio",   str(ejercicio))
+    _t(root, "Periodo",     "0A")
+    _t(root, "NIF",         config.EMPRESA_NIF)
+    _t(root, "RazonSocial", config.EMPRESA_NOMBRE)
+
+    dev = SubElement(root, "IVADevengado")
+    _t(dev, "C01_BaseGeneral",          _n(c["01_base_general"]))
+    _t(dev, "C02_CuotaGeneral",         _n(c["02_cuota_general"]))
+    _t(dev, "C03_BaseReducido",         _n(c["03_base_reducido"]))
+    _t(dev, "C04_CuotaReducido",        _n(c["04_cuota_reducido"]))
+    _t(dev, "C05_BaseSuperreducido",    _n(c["05_base_superreducido"]))
+    _t(dev, "C06_CuotaSuperreducido",   _n(c["06_cuota_superreducido"]))
+    _t(dev, "C09_TotalBaseDevengada",   _n(c["09_total_bases_devengadas"]))
+    _t(dev, "C27_TotalDevengado",       _n(c["27_total_devengado"]))
+
+    ded = SubElement(root, "IVADeducible")
+    _t(ded, "C28_CuotasSoportadas",     _n(c["28_cuotas_soportadas"]))
+    _t(ded, "C29_BasesSoportadas",      _n(c["29_bases_soportadas"]))
+    _t(ded, "C46_TotalDeducible",       _n(c["46_total_deducible"]))
+
+    res = SubElement(root, "Resultado")
+    _t(res, "C64_ResultadoAnual",       _n(c["64_resultado_anual"]))
+    _t(res, "C65_PctEstado",            _n(c["65_pct_estado"]))
+    _t(res, "C66_ResultadoEstado",      _n(c["66_resultado_estado"]))
+    _t(res, "C69_SumaTrimestral",       _n(c["69_suma_trimestral"]))
+    _t(res, "C71_ResultadoFinal",       _n(c["71_resultado_final"]))
+    _t(res, "Signo",                    datos["resumen"]["signo"])
+
+    tri = SubElement(root, "DesgloseTrimestral")
+    for q, td in datos["trimestres"].items():
+        qe = SubElement(tri, f"Trimestre_{q}")
+        _t(qe, "Resultado",   _n(td["resultado"]))
+        _t(qe, "AIngresar",   _n(td["a_ingresar"]))
+        _t(qe, "ACompensar",  _n(td["a_compensar"]))
+
+    _t(root, "FechaGeneracion", date.today().isoformat())
+    indent(root, space="  ")
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(root, encoding="unicode")
+
+
+# ── Modelo 190 → XML ──────────────────────────────────────────────────────────
+
+def export_190_xml(ejercicio: int) -> str:
+    datos = calculate_190(ejercicio)
+    c = datos["casillas"]
+
+    root = Element("T19000")
+    _t(root, "Ejercicio",   str(ejercicio))
+    _t(root, "Periodo",     "0A")
+    _t(root, "NIF",         config.EMPRESA_NIF)
+    _t(root, "RazonSocial", config.EMPRESA_NOMBRE)
+
+    resumen = SubElement(root, "Resumen")
+    _t(resumen, "TotalPerceptores",  str(c["n_perceptores"]))
+    _t(resumen, "TotalBase",         _n(c["base_total"]))
+    _t(resumen, "TotalRetenciones",  _n(c["retenciones_total"]))
+
+    perceps = SubElement(root, "Perceptores")
+    for p in datos["perceptores"]:
+        pe = SubElement(perceps, "Perceptor")
+        _t(pe, "NIF",               p["nif"] or "SIN-NIF")
+        _t(pe, "Nombre",            p["nombre"])
+        _t(pe, "Clave",             p["clave"])
+        _t(pe, "Subclave",          p["subclave"])
+        _t(pe, "BaseRetencion",     _n(p["base_retencion"]))
+        _t(pe, "Retenciones",       _n(p["retenciones"]))
+        _t(pe, "TipoMedio",         _n(p["tipo_retencion_medio"]))
+        _t(pe, "NumFacturas",       str(p["num_facturas"]))
+
+    tri = SubElement(root, "DesgloseTrimestral")
+    for q, td in datos["trimestres"].items():
+        qe = SubElement(tri, f"Trimestre_{q}")
+        _t(qe, "NPerceptores",  str(td["n_perceptores"]))
+        _t(qe, "Base",          _n(td["base"]))
+        _t(qe, "Retenciones",   _n(td["retenciones"]))
+
+    if datos["advertencias"]:
+        adv = SubElement(root, "Advertencias")
+        for a in datos["advertencias"]:
+            _t(adv, "Advertencia", a)
+
+    _t(root, "FechaGeneracion", date.today().isoformat())
     indent(root, space="  ")
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(root, encoding="unicode")
 
@@ -162,6 +257,12 @@ def export_model(
     elif modelo == "111":
         contenido = export_111_xml(ejercicio, periodo)
         ext = "xml"
+    elif modelo == "390":
+        contenido = export_390_xml(ejercicio)
+        ext = "xml"
+    elif modelo == "190":
+        contenido = export_190_xml(ejercicio)
+        ext = "xml"
     elif modelo == "200":
         contenido = export_200_json(
             ejercicio,
@@ -179,7 +280,7 @@ def export_model(
         )
         ext = "csv"
     else:
-        raise ValueError(f"Modelo no soportado para exportación: {modelo}")
+        raise ValueError(f"Modelo no soportado para exportación: {modelo}. Use 303, 111, 390, 190, 200 o facturas.")
 
     if not output_path:
         output_path = f"modelo_{modelo.lower()}_{ejercicio}_{periodo}.{ext}"

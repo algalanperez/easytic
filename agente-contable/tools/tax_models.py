@@ -191,6 +191,8 @@ def generate_model_draft(
     kwargs:   para Modelo 200 — ajustes_fiscales, bins_anteriores, deducciones, tipo_gravamen
     """
     from tools.modelo_200 import calculate_200
+    from tools.modelo_390 import calculate_390
+    from tools.modelo_190 import calculate_190
 
     modelo = modelo.strip()
     if modelo == "303":
@@ -200,8 +202,14 @@ def generate_model_draft(
     elif modelo == "200":
         periodo = "anual"
         datos = calculate_200(ejercicio, **kwargs)
+    elif modelo == "390":
+        periodo = "anual"
+        datos = calculate_390(ejercicio)
+    elif modelo == "190":
+        periodo = "anual"
+        datos = calculate_190(ejercicio)
     else:
-        raise ValueError(f"Modelo no soportado: {modelo!r}. Use '303', '111' o '200'.")
+        raise ValueError(f"Modelo no soportado: {modelo!r}. Use '303', '111', '200', '390' o '190'.")
 
     db.upsert_liquidacion(modelo, ejercicio, periodo, datos)
 

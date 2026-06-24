@@ -16,7 +16,7 @@ import config
 from connectors import drive, gmail
 from database import db
 from tools import db_tools, parse_invoice, tax_calendar, tax_models
-from tools import modelo_200, sii_check, export_aeat
+from tools import modelo_200, modelo_390, modelo_190, sii_check, export_aeat
 
 # ── Definición de tools para la API de Claude ─────────────────────────────────
 
@@ -228,6 +228,37 @@ TOOLS: list[dict] = [
         },
     },
     {
+        "name": "calculate_390",
+        "description": (
+            "Calcula el Modelo 390 (Declaración-Resumen Anual del IVA) para un ejercicio completo. "
+            "Agrega los cuatro trimestres 303 y calcula el resultado final del año. "
+            "Plazo de presentación: 30 de enero del año siguiente."
+        ),
+        "input_schema": {
+            "type": "object",
+            "required": ["ejercicio"],
+            "properties": {
+                "ejercicio": {"type": "integer", "description": "Año fiscal"},
+            },
+        },
+    },
+    {
+        "name": "calculate_190",
+        "description": (
+            "Calcula el Modelo 190 (Resumen Anual de Retenciones IRPF) para un ejercicio completo. "
+            "Agrega los cuatro trimestres 111 y genera la relación nominal de perceptores "
+            "(clave G — actividades profesionales/autónomos). "
+            "Plazo de presentación: 31 de enero del año siguiente."
+        ),
+        "input_schema": {
+            "type": "object",
+            "required": ["ejercicio"],
+            "properties": {
+                "ejercicio": {"type": "integer", "description": "Año fiscal"},
+            },
+        },
+    },
+    {
         "name": "check_sii_compliance",
         "description": (
             "Verifica el cumplimiento SII/Verifactu de las facturas registradas. "
@@ -254,7 +285,7 @@ TOOLS: list[dict] = [
             "type": "object",
             "required": ["modelo", "ejercicio"],
             "properties": {
-                "modelo":           {"type": "string", "description": "'303'|'111'|'200'|'facturas'"},
+                "modelo":           {"type": "string", "description": "'303'|'111'|'390'|'190'|'200'|'facturas'"},
                 "ejercicio":        {"type": "integer"},
                 "periodo":          {"type": "string", "description": "Q1..Q4 para 303/111; anual para 200"},
                 "output_path":      {"type": "string", "description": "Ruta de salida (opcional, se genera automáticamente)"},
@@ -274,7 +305,7 @@ SYSTEM_PROMPT = f"""Eres el asistente contable y fiscal de {config.EMPRESA_NOMBR
 Tu misión:
 1. Recopilar y centralizar facturas emitidas y recibidas desde Google Drive, Gmail y otros orígenes.
 2. Mantener actualizado el libro contable en la base de datos SQLite.
-3. Calcular modelos fiscales: IVA (303), IRPF (111), Impuesto de Sociedades (200).
+3. Calcular modelos fiscales: IVA trimestral (303), IRPF trimestral (111), resúmenes anuales (390/190), IS (200).
 4. Verificar cumplimiento SII/Verifactu de las facturas antes de presentar.
 5. Exportar borradores a XML/JSON/CSV para la Agencia Tributaria o el asesor.
 6. Alertar sobre vencimientos fiscales próximos.
@@ -283,11 +314,14 @@ Tu misión:
 Normas de uso de herramientas:
 - Usa siempre fechas en formato ISO (YYYY-MM-DD).
 - Facturas de Drive/Gmail: guárdalas con upsert_factura antes de calcular nada.
-- Cálculos trimestrales: calculate_303 o calculate_111; anual IS: calculate_200.
-- Para borrador persistido: generate_model_draft (también admite modelo='200').
+- Cálculos trimestrales: calculate_303 o calculate_111.
+- Resúmenes anuales: calculate_390 (IVA anual) y calculate_190 (retenciones anuales, con relación nominal).
+- IS anual: calculate_200.
+- Para borrador persistido: generate_model_draft (admite modelos '303','111','390','190','200').
 - Antes de presentar un trimestre: ejecuta check_sii_compliance para ese período.
-- Para exportar: export_model con modelo='303'|'111'|'200'|'facturas'.
+- Para exportar: export_model con modelo='303'|'111'|'390'|'190'|'200'|'facturas'.
 - Modelo 200: advierte siempre que ajustes fiscales, BINs y deducciones requieren revisión con asesor.
+- El 390 se presenta junto con el 303 del 4T (30 enero); el 190 junto con el 111 del 4T (31 enero).
 - El IVA general es 21%; reducido 10%; superreducido 4%.
 - Retención IRPF profesionales: 15% (7% primeros 3 años de actividad).
 - Tipo IS general: 25%; empresas nuevas (primeros 2 ejercicios con base positiva): 15%.
@@ -400,6 +434,12 @@ def _run_tool(name: str, inputs: dict) -> Any:
             bins_anteriores=inputs.get("bins_anteriores", 0.0),
             deducciones=inputs.get("deducciones", 0.0),
         )
+
+    elif name == "calculate_390":
+        return modelo_390.calculate_390(ejercicio=inputs["ejercicio"])
+
+    elif name == "calculate_190":
+        return modelo_190.calculate_190(ejercicio=inputs["ejercicio"])
 
     elif name == "check_sii_compliance":
         return sii_check.check_sii_compliance(

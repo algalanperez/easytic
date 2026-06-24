@@ -24,6 +24,8 @@ from database.db import get_conn
 from tools.tax_calendar import get_upcoming_deadlines, quarter_date_range
 from tools.tax_models import calculate_303, calculate_111, generate_model_draft, list_liquidaciones
 from tools.modelo_200 import calculate_200
+from tools.modelo_390 import calculate_390
+from tools.modelo_190 import calculate_190
 from tools.sii_check import check_sii_compliance
 from tools.export_aeat import export_model
 import config
@@ -99,14 +101,18 @@ def cmd_calc(modelo: str, periodo: str, ejercicio: int) -> None:
         _print_111(calculate_111(ejercicio, periodo))
     elif modelo == "200":
         _print_200(calculate_200(ejercicio))
+    elif modelo == "390":
+        _print_390(calculate_390(ejercicio))
+    elif modelo == "190":
+        _print_190(calculate_190(ejercicio))
     else:
-        print(f"Modelo no soportado: {modelo}. Use 303, 111 o 200.", file=sys.stderr)
+        print(f"Modelo no soportado: {modelo}. Use 303, 111, 200, 390 o 190.", file=sys.stderr)
         sys.exit(1)
 
 
 def cmd_draft(modelo: str, periodo: str, ejercicio: int) -> None:
     modelo = modelo.upper()
-    periodo = periodo.upper() if periodo else ("anual" if modelo == "200" else "Q1")
+    periodo = periodo.upper() if periodo else ("anual" if modelo in ("200", "390", "190") else "Q1")
     r = generate_model_draft(modelo, ejercicio, periodo)
     if modelo == "303":
         _print_303(r)
@@ -114,6 +120,10 @@ def cmd_draft(modelo: str, periodo: str, ejercicio: int) -> None:
         _print_111(r)
     elif modelo == "200":
         _print_200(r)
+    elif modelo == "390":
+        _print_390(r)
+    elif modelo == "190":
+        _print_190(r)
     else:
         print(f"Modelo no soportado: {modelo}.", file=sys.stderr)
         sys.exit(1)
@@ -152,6 +162,60 @@ def _print_200(r: dict) -> None:
         for adv in r["advertencias"]:
             print(f"    ⚠  {adv}")
     print(f"\n  Plazo de presentación: 25 de julio {r['ejercicio'] + 1}\n")
+
+
+def _print_390(r: dict) -> None:
+    c = r["casillas"]
+    print(f"\n{_SEP}")
+    print(f"  MODELO 390 — RESUMEN ANUAL IVA  {r['ejercicio']}")
+    print(f"  {r['empresa_nombre']}  NIF: {r['empresa_nif']}")
+    print(_SEP)
+    print(f"  IVA DEVENGADO (emitidas)")
+    print(f"    [01/02] General 21%:   base {c['01_base_general']:>12,.2f} €  cuota {c['02_cuota_general']:>10,.2f} €")
+    print(f"    [03/04] Reducido 10%:  base {c['03_base_reducido']:>12,.2f} €  cuota {c['04_cuota_reducido']:>10,.2f} €")
+    print(f"    [05/06] Superred.  4%: base {c['05_base_superreducido']:>12,.2f} €  cuota {c['06_cuota_superreducido']:>10,.2f} €")
+    print(f"    [09] Total bases:      {c['09_total_bases_devengadas']:>36,.2f} €")
+    print(f"    [27] Total devengado:  {c['27_total_devengado']:>36,.2f} €")
+    print(f"  IVA DEDUCIBLE (recibidas)")
+    print(f"    [28/29] Cuotas/bases: {c['28_cuotas_soportadas']:>12,.2f} € / {c['29_bases_soportadas']:>10,.2f} €")
+    print(f"    [46] Total deducible:  {c['46_total_deducible']:>36,.2f} €")
+    print(f"  RESULTADO")
+    print(f"    [64] Resultado anual:  {c['64_resultado_anual']:>36,.2f} €")
+    print(f"    [66] Result. Estado:   {c['66_resultado_estado']:>36,.2f} €")
+    print(f"    [69] Suma trimestral:  {c['69_suma_trimestral']:>36,.2f} €")
+    signo = "A INGRESAR" if r["resumen"]["signo"] == "ingreso" else "A DEVOLVER"
+    print(f"  {'═'*54}")
+    print(f"  [71] RESULTADO FINAL:  {c['71_resultado_final']:>36,.2f} €  →  {signo}")
+    print(f"  {'═'*54}")
+    print(f"\n  Desglose trimestral:")
+    for q, td in r["trimestres"].items():
+        signo_q = "↑" if td["resultado"] >= 0 else "↓"
+        print(f"    {q}: resultado {td['resultado']:>10,.2f} €  {signo_q}")
+    print(f"\n  Plazo de presentación: 30 de enero {r['ejercicio'] + 1}\n")
+
+
+def _print_190(r: dict) -> None:
+    c = r["casillas"]
+    print(f"\n{_SEP}")
+    print(f"  MODELO 190 — RESUMEN ANUAL RETENCIONES IRPF  {r['ejercicio']}")
+    print(f"  {r['empresa_nombre']}  NIF: {r['empresa_nif']}")
+    print(_SEP)
+    print(f"  RESUMEN")
+    print(f"    Perceptores únicos:      {c['n_perceptores']:>8}")
+    print(f"    Base de retención:       {c['base_total']:>12,.2f} €")
+    print(f"    Total retenciones:       {c['retenciones_total']:>12,.2f} €")
+    print(f"  DESGLOSE TRIMESTRAL")
+    for q, td in r["trimestres"].items():
+        print(f"    {q}: {td['n_perceptores']} perceptores  base {td['base']:>10,.2f} €  ret. {td['retenciones']:>8,.2f} €")
+    print(f"  RELACIÓN DE PERCEPTORES (clave G — profesionales)")
+    for p in r["perceptores"]:
+        nif_str = p["nif"] or "SIN-NIF"
+        print(f"    {nif_str:12}  {p['nombre'][:30]:30}  base {p['base_retencion']:>10,.2f} €  ret. {p['retenciones']:>8,.2f} €")
+    if r["advertencias"]:
+        print(f"\n  ADVERTENCIAS:")
+        for adv in r["advertencias"]:
+            print(f"    ⚠  {adv}")
+    print(f"\n  Plazo de presentación: 31 de enero {r['ejercicio'] + 1}\n")
 
 
 def cmd_sii_check(periodo: str | None, ejercicio: int) -> None:
@@ -301,13 +365,13 @@ def main() -> None:
     )
     parser.add_argument("--alertas",       action="store_true",
                         help="Muestra vencimientos fiscales próximos (30 días)")
-    parser.add_argument("--calc",          metavar="303|111|200",
+    parser.add_argument("--calc",          metavar="303|111|200|390|190",
                         help="Calcula el modelo fiscal indicado (sin guardar)")
-    parser.add_argument("--draft",         metavar="303|111|200",
+    parser.add_argument("--draft",         metavar="303|111|200|390|190",
                         help="Calcula y guarda borrador en BD")
     parser.add_argument("--sii-check",     action="store_true", dest="sii_check",
                         help="Verifica cumplimiento SII/Verifactu")
-    parser.add_argument("--export",        metavar="303|111|200|facturas",
+    parser.add_argument("--export",        metavar="303|111|200|390|190|facturas",
                         help="Exporta modelo a XML/JSON/CSV")
     parser.add_argument("--periodo",       metavar="Q1|Q2|Q3|Q4",
                         help="Trimestre para 303/111/export (default: Q1)")
@@ -334,7 +398,8 @@ def main() -> None:
 
     get_conn()  # inicializa BD en todos los modos
 
-    periodo = args.periodo or ("anual" if (args.calc or args.export or "") == "200" else "Q1")
+    _anual = {"200", "390", "190"}
+    periodo = args.periodo or ("anual" if (args.calc or args.export or "").upper() in _anual else "Q1")
 
     if args.serve:
         cmd_serve()
