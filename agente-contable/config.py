@@ -29,6 +29,8 @@ CLAUDE_MODEL_PARSER = "claude-haiku-4-5-20251001"
 # Panel web
 WEB_HOST = os.getenv("WEB_HOST", "127.0.0.1")
 WEB_PORT = int(os.getenv("WEB_PORT", "8080"))
+WEB_USER = os.getenv("WEB_USER", "")  # vacío → sin autenticación (dev local)
+WEB_PASS = os.getenv("WEB_PASS", "")
 EXPORT_DIR = os.getenv("EXPORT_DIR", "exports")
 
 # Notificaciones email (opcional)
