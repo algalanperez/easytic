@@ -107,6 +107,22 @@ def list_liquidaciones(ejercicio: int | None = None) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def mark_presentado(modelo: str, ejercicio: int, periodo: str) -> bool:
+    """Marca una liquidación como presentada con la fecha actual. Devuelve False si no existe."""
+    from datetime import date
+    conn = get_conn()
+    cur = conn.execute(
+        """
+        UPDATE liquidaciones
+           SET estado = 'presentado', presentado_en = ?
+         WHERE modelo = ? AND ejercicio = ? AND periodo = ? AND estado = 'borrador'
+        """,
+        (date.today().isoformat(), modelo, ejercicio, periodo),
+    )
+    conn.commit()
+    return cur.rowcount > 0
+
+
 def get_liquidacion(modelo: str, ejercicio: int, periodo: str) -> dict | None:
     row = get_conn().execute(
         "SELECT * FROM liquidaciones WHERE modelo=? AND ejercicio=? AND periodo=?",

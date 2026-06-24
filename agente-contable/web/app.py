@@ -250,6 +250,16 @@ async def scheduler_page(request: Request):
     ))
 
 
+@app.post("/modelos/presentar")
+async def modelos_presentar(
+    modelo: str = Form(...), periodo: str = Form(...), ejercicio: int = Form(...),
+):
+    ok = db.mark_presentado(modelo.upper(), ejercicio, periodo.upper())
+    if ok:
+        return _redirect("/modelos", f"Mod.{modelo} {periodo}/{ejercicio} marcado como presentado.")
+    return _redirect("/modelos", f"No se encontró borrador Mod.{modelo} {periodo}/{ejercicio}.", "warning")
+
+
 @app.post("/scheduler/run/deadline_alert")
 async def scheduler_run_deadline(request: Request):
     try:

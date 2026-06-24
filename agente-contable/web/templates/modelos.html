@@ -136,9 +136,18 @@
             </td>
             <td style="color:var(--muted)">{{ l.created_at[:10] if l.created_at else '—' }}</td>
             <td style="color:var(--muted)">{{ l.presentado_en or '—' }}</td>
-            <td>
+            <td style="white-space:nowrap">
               <a href="/modelos/download/{{ l.modelo }}/{{ l.ejercicio }}/{{ l.periodo }}"
                  class="btn btn-neutral btn-sm">↓ Descargar</a>
+              {% if l.estado == 'borrador' %}
+              <form method="post" action="/modelos/presentar" style="display:inline"
+                    onsubmit="return confirm('¿Marcar Mod.{{ l.modelo }} {{ l.periodo }}/{{ l.ejercicio }} como presentado? Esta acción no se puede deshacer.')">
+                <input type="hidden" name="modelo"    value="{{ l.modelo }}">
+                <input type="hidden" name="periodo"   value="{{ l.periodo }}">
+                <input type="hidden" name="ejercicio" value="{{ l.ejercicio }}">
+                <button type="submit" class="btn btn-success btn-sm">✓ Presentado</button>
+              </form>
+              {% endif %}
             </td>
           </tr>
           {% else %}

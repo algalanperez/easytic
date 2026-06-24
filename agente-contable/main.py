@@ -264,6 +264,17 @@ def cmd_export(modelo: str, periodo: str, ejercicio: int,
     print(f"\n  Exportado: {result['fichero']}  ({result['bytes']} bytes)  [{result['formato'].upper()}]\n")
 
 
+def cmd_presentar(modelo: str, periodo: str, ejercicio: int) -> None:
+    from database.db import mark_presentado
+    modelo = modelo.upper()
+    periodo = periodo.upper()
+    ok = mark_presentado(modelo, ejercicio, periodo)
+    if ok:
+        print(f"  Mod.{modelo} {periodo}/{ejercicio} marcado como PRESENTADO.")
+    else:
+        print(f"  No se encontró borrador Mod.{modelo} {periodo}/{ejercicio} (ya presentado o inexistente).")
+
+
 def cmd_liquidaciones(ejercicio: int | None) -> None:
     rows = list_liquidaciones(ejercicio)
     if not rows:
@@ -388,6 +399,8 @@ def main() -> None:
                         help="Arranca el panel web en http://HOST:PORT")
     parser.add_argument("--scheduler",     action="store_true",
                         help="Ejecuta el scheduler standalone (sin web)")
+    parser.add_argument("--presentar",     metavar="303|111|200|390|190",
+                        help="Marca el borrador indicado como presentado (requiere --periodo para 303/111)")
     parser.add_argument("--liquidaciones", action="store_true",
                         help="Lista borradores/liquidaciones guardados")
     parser.add_argument("--sync",          metavar="Q1|Q2|Q3|Q4",
@@ -399,7 +412,8 @@ def main() -> None:
     get_conn()  # inicializa BD en todos los modos
 
     _anual = {"200", "390", "190"}
-    periodo = args.periodo or ("anual" if (args.calc or args.export or "").upper() in _anual else "Q1")
+    _ref_modelo = args.calc or args.draft or args.export or args.presentar or ""
+    periodo = args.periodo or ("anual" if _ref_modelo.upper() in _anual else "Q1")
 
     if args.serve:
         cmd_serve()
@@ -413,6 +427,8 @@ def main() -> None:
         cmd_sii_check(args.periodo, args.ejercicio)
     elif args.export:
         cmd_export(args.export, periodo, args.ejercicio, args.desde, args.hasta, args.output)
+    elif args.presentar:
+        cmd_presentar(args.presentar, periodo, args.ejercicio)
     elif args.liquidaciones:
         cmd_liquidaciones(args.ejercicio if args.ejercicio != config.EMPRESA_EJERCICIO else None)
     elif args.alertas:
