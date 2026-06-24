@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% set active = "scheduler" %}
+{% block title %}Scheduler{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Scheduler</h1>
+  <p>Jobs automáticos de cálculo y notificación</p>
+</div>
+
+<!-- Estado -->
+<div class="cards" style="margin-bottom:16px">
+  <div class="card {% if scheduler_running %}success{% else %}danger{% endif %}">
+    <div class="card-label">Estado</div>
+    <div class="card-value">{{ "Activo" if scheduler_running else "Detenido" }}</div>
+    <div class="card-sub">{{ jobs | length }} job(s) registrado(s)</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Email notificaciones</div>
+    <div class="card-value">{{ "Configurado" if notify_configured else "No configurado" }}</div>
+    <div class="card-sub">{{ notify_to or "— sin destinatario —" }}</div>
+  </div>
+</div>
+
+<!-- Jobs -->
+<div class="section" style="margin-bottom:16px">
+  <div class="section-header"><span class="section-title">Jobs registrados</span></div>
+  <div class="section-body">
+    {% if jobs %}
+    {% for j in jobs %}
+    <div class="job-row">
+      <div>
+        <span class="job-id">{{ j.id }}</span>
+        <div class="job-next">{{ j.trigger }}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:12px;color:var(--muted)">Próxima ejecución</div>
+        <div style="font-weight:500">{{ j.next_run or "—" }}</div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p style="color:var(--muted)">Scheduler no está corriendo. Arranca con <code>python main.py --serve</code>.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Acciones manuales -->
+<div class="section">
+  <div class="section-header"><span class="section-title">Ejecutar manualmente</span></div>
+  <div class="section-body">
+    <div class="btn-group">
+      <form method="post" action="/scheduler/run/deadline_alert" style="display:inline">
+        <button type="submit" class="btn btn-neutral">⏰ Comprobar vencimientos ahora</button>
+      </form>
+      <form method="post" action="/scheduler/run/quarterly" style="display:inline">
+        <input type="hidden" name="quarter" value="{{ current_q }}">
+        <button type="submit" class="btn btn-neutral">⚡ Cierre {{ current_q }} ahora</button>
+      </form>
+    </div>
+    <p style="color:var(--muted);font-size:12px;margin-top:10px">
+      Estas acciones calculan los modelos del trimestre actual, verifican SII y envían email si está configurado.
+    </p>
+  </div>
+</div>
+
+<!-- Config SMTP -->
+<div class="section">
+  <div class="section-header"><span class="section-title">Configuración email (sólo lectura)</span></div>
+  <div class="section-body">
+    <table>
+      <tr><td style="color:var(--muted);width:160px">SMTP Host</td>
+          <td>{{ smtp_host or "— no configurado —" }}</td></tr>
+      <tr><td style="color:var(--muted)">SMTP Port</td>
+          <td>{{ smtp_port }}</td></tr>
+      <tr><td style="color:var(--muted)">SMTP User</td>
+          <td>{{ smtp_user or "—" }}</td></tr>
+      <tr><td style="color:var(--muted)">Destinatario(s)</td>
+          <td>{{ notify_to or "—" }}</td></tr>
+    </table>
+    <p style="color:var(--muted);font-size:12px;margin-top:10px">
+      Edita <code>.env</code> para configurar SMTP_HOST, SMTP_USER, SMTP_PASS y NOTIFY_TO.
+    </p>
+  </div>
+</div>
+{% endblock %}

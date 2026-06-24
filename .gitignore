@@ -1,0 +1,4 @@
+agente-contable/__pycache__/
+agente-contable/**/__pycache__/
+agente-contable/*.db
+agente-contable/token.json
