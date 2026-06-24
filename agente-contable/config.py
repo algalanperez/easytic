@@ -25,3 +25,16 @@ DB_PATH = os.getenv("DB_PATH", "contabilidad.db")
 # Modelo principal para razonamiento; haiku para parseo masivo de facturas
 CLAUDE_MODEL_AGENT = "claude-sonnet-4-6"
 CLAUDE_MODEL_PARSER = "claude-haiku-4-5-20251001"
+
+# Panel web
+WEB_HOST = os.getenv("WEB_HOST", "127.0.0.1")
+WEB_PORT = int(os.getenv("WEB_PORT", "8080"))
+EXPORT_DIR = os.getenv("EXPORT_DIR", "exports")
+
+# Notificaciones email (opcional)
+SMTP_HOST     = os.getenv("SMTP_HOST", "")
+SMTP_PORT     = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER     = os.getenv("SMTP_USER", "")
+SMTP_PASS     = os.getenv("SMTP_PASS", "")
+SMTP_FROM     = os.getenv("SMTP_FROM", SMTP_USER)
+NOTIFY_TO     = os.getenv("NOTIFY_TO", "")       # email(s) separados por coma

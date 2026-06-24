@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% set active = "dashboard" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <p>Resumen contable y fiscal — Ejercicio {{ ejercicio }}</p>
+</div>
+
+<!-- KPI cards -->
+<div class="cards">
+  {% set emit = resumen_anual.get('emitida', {}) %}
+  {% set recv = resumen_anual.get('recibida', {}) %}
+  <div class="card accent">
+    <div class="card-label">Ingresos {{ ejercicio }}</div>
+    <div class="card-value">{{ "%.0f"|format(emit.get('base_imponible', 0)) }} €</div>
+    <div class="card-sub">{{ emit.get('n_facturas', 0) }} factura(s) emitida(s)</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Gastos {{ ejercicio }}</div>
+    <div class="card-value">{{ "%.0f"|format(recv.get('base_imponible', 0)) }} €</div>
+    <div class="card-sub">{{ recv.get('n_facturas', 0) }} factura(s) recibida(s)</div>
+  </div>
+  <div class="card {% if resumen_anual.get('resultado_iva', 0) > 0 %}warning{% else %}success{% endif %}">
+    <div class="card-label">Posición IVA anual</div>
+    <div class="card-value">{{ "%.0f"|format(resumen_anual.get('resultado_iva', 0)) }} €</div>
+    <div class="card-sub">{{ "A ingresar" if resumen_anual.get('resultado_iva', 0) > 0 else "A favor" }}</div>
+  </div>
+  <div class="card {% if sii_resumen.porcentaje_cumplimiento == 100 %}success{% elif sii_resumen.porcentaje_cumplimiento >= 80 %}warning{% else %}danger{% endif %}">
+    <div class="card-label">Cumplimiento SII</div>
+    <div class="card-value">{{ sii_resumen.porcentaje_cumplimiento }}%</div>
+    <div class="card-sub">{{ sii_resumen.facturas_con_errores }} incidencia(s)</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+  <!-- Vencimientos -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Próximos vencimientos (45 días)</span>
+      <a href="/modelos" class="btn btn-neutral btn-sm">Ver modelos →</a>
+    </div>
+    <div class="section-body">
+      {% if deadlines %}
+      <ul class="deadline-list">
+        {% for d in deadlines %}
+        <li class="deadline-item">
+          <span class="deadline-days {% if d.dias_restantes <= 7 %}days-urgent{% elif d.dias_restantes <= 20 %}days-soon{% else %}days-ok{% endif %}">
+            {{ d.dias_restantes }}d
+          </span>
+          <div class="deadline-info">
+            <div>{{ d.descripcion }}</div>
+            <div class="deadline-modelo">Mod. {{ d.modelo }} · {{ d.vencimiento }}</div>
+          </div>
+          <a href="/modelos?modelo={{ d.modelo }}&periodo={{ d.periodo }}" class="btn btn-neutral btn-sm">Calcular</a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p style="color:var(--muted)">Sin vencimientos en los próximos 45 días.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Resumen trimestre actual -->
+  <div>
+    <div class="section" style="margin-bottom:16px">
+      <div class="section-header">
+        <span class="section-title">Trimestre actual — {{ current_q }}</span>
+      </div>
+      <div class="section-body">
+        {% set eq = resumen_q.get('emitida', {}) %}
+        {% set rq = resumen_q.get('recibida', {}) %}
+        <table>
+          <tr><td style="color:var(--muted)">Facturas emitidas</td>
+              <td style="text-align:right;font-weight:600">{{ "%.2f"|format(eq.get('base_imponible', 0)) }} €</td>
+              <td><span class="badge badge-blue">{{ eq.get('n_facturas', 0) }} fact.</span></td></tr>
+          <tr><td style="color:var(--muted)">Facturas recibidas</td>
+              <td style="text-align:right;font-weight:600">{{ "%.2f"|format(rq.get('base_imponible', 0)) }} €</td>
+              <td><span class="badge badge-neutral">{{ rq.get('n_facturas', 0) }} fact.</span></td></tr>
+          <tr><td style="color:var(--muted)">Resultado IVA</td>
+              <td style="text-align:right;font-weight:700;color:{% if resumen_q.get('resultado_iva', 0) > 0 %}var(--warning){% else %}var(--success){% endif %}">
+                {{ "%.2f"|format(resumen_q.get('resultado_iva', 0)) }} €</td>
+              <td></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Últimas liquidaciones -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Últimas liquidaciones</span>
+      </div>
+      <div class="section-body">
+        {% if liquidaciones %}
+        <table>
+          <thead><tr><th>Modelo</th><th>Período</th><th>Estado</th></tr></thead>
+          <tbody>
+            {% for l in liquidaciones[:5] %}
+            <tr>
+              <td>Mod. {{ l.modelo }}</td>
+              <td>{{ l.periodo }}/{{ l.ejercicio }}</td>
+              <td>
+                {% if l.estado == 'presentado' %}
+                  <span class="badge badge-success">Presentado</span>
+                {% else %}
+                  <span class="badge badge-warning">Borrador</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p style="color:var(--muted)">Sin liquidaciones guardadas aún.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

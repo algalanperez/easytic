@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% set active = "modelos" %}
+{% block title %}Modelos fiscales{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Modelos fiscales</h1>
+  <p>Calcula, guarda y exporta borradores de liquidaciones</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+  <!-- Calcular modelo -->
+  <div class="section">
+    <div class="section-header"><span class="section-title">Calcular y guardar borrador</span></div>
+    <div class="section-body">
+      <form method="post" action="/modelos/calcular">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Modelo</label>
+            <select name="modelo" required>
+              <option value="303">303 — IVA trimestral</option>
+              <option value="111">111 — IRPF trimestral</option>
+              <option value="200">200 — IS anual</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Período</label>
+            <select name="periodo">
+              {% for p in periodos %}
+              <option value="{{ p }}">{{ p }}</option>
+              {% endfor %}
+              <option value="anual">Anual</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ejercicio</label>
+            <input type="number" name="ejercicio" value="{{ ejercicio }}" style="width:80px">
+          </div>
+          <button type="submit" class="btn btn-primary">Calcular</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Exportar modelo -->
+  <div class="section">
+    <div class="section-header"><span class="section-title">Exportar a XML / JSON</span></div>
+    <div class="section-body">
+      <form method="post" action="/modelos/exportar">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Modelo</label>
+            <select name="modelo" required>
+              <option value="303">303 — XML</option>
+              <option value="111">111 — XML</option>
+              <option value="200">200 — JSON</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Período</label>
+            <select name="periodo">
+              {% for p in periodos %}
+              <option value="{{ p }}">{{ p }}</option>
+              {% endfor %}
+              <option value="anual">Anual</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ejercicio</label>
+            <input type="number" name="ejercicio" value="{{ ejercicio }}" style="width:80px">
+          </div>
+          <button type="submit" class="btn btn-success">Exportar</button>
+        </div>
+      </form>
+      <p style="color:var(--muted);font-size:12px;margin-top:8px">
+        Los archivos se guardan en la carpeta <code>exports/</code>.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Descarga directa -->
+<div class="section" style="margin-bottom:16px">
+  <div class="section-header"><span class="section-title">Descarga directa</span></div>
+  <div class="section-body">
+    <div class="form-row">
+      {% for p in periodos %}
+      <a href="/modelos/download/303/{{ ejercicio }}/{{ p }}" class="btn btn-neutral btn-sm">
+        303 {{ p }}/{{ ejercicio }} ↓
+      </a>
+      {% endfor %}
+      {% for p in periodos %}
+      <a href="/modelos/download/111/{{ ejercicio }}/{{ p }}" class="btn btn-neutral btn-sm">
+        111 {{ p }}/{{ ejercicio }} ↓
+      </a>
+      {% endfor %}
+      <a href="/modelos/download/200/{{ ejercicio }}/anual" class="btn btn-neutral btn-sm">
+        200 {{ ejercicio }} ↓
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Liquidaciones guardadas -->
+<div class="section">
+  <div class="section-header"><span class="section-title">Borradores y liquidaciones</span></div>
+  <div class="section-body" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Modelo</th><th>Período</th><th>Estado</th><th>Guardado</th><th>Presentado</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for l in liquidaciones %}
+          <tr>
+            <td><strong>Mod. {{ l.modelo }}</strong></td>
+            <td>{{ l.periodo }}/{{ l.ejercicio }}</td>
+            <td>
+              {% if l.estado == 'presentado' %}
+                <span class="badge badge-success">Presentado</span>
+              {% else %}
+                <span class="badge badge-warning">Borrador</span>
+              {% endif %}
+            </td>
+            <td style="color:var(--muted)">{{ l.created_at[:10] if l.created_at else '—' }}</td>
+            <td style="color:var(--muted)">{{ l.presentado_en or '—' }}</td>
+            <td>
+              <a href="/modelos/download/{{ l.modelo }}/{{ l.ejercicio }}/{{ l.periodo }}"
+                 class="btn btn-neutral btn-sm">↓ Descargar</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">
+            Sin liquidaciones guardadas. Usa el formulario de arriba para calcular.
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

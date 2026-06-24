@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Panel Contable{% endblock %} — {{ empresa_nombre }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">◈</span>
+      <div>
+        <div class="brand-name">Agente Contable</div>
+        <div class="brand-sub">{{ empresa_nombre }}</div>
+      </div>
+    </div>
+    <ul class="nav-links">
+      <li><a href="/" class="nav-link {% if active == 'dashboard' %}active{% endif %}">
+        <span>⬡</span> Dashboard
+      </a></li>
+      <li><a href="/facturas" class="nav-link {% if active == 'facturas' %}active{% endif %}">
+        <span>≡</span> Facturas
+      </a></li>
+      <li><a href="/modelos" class="nav-link {% if active == 'modelos' %}active{% endif %}">
+        <span>◷</span> Modelos fiscales
+      </a></li>
+      <li><a href="/sii" class="nav-link {% if active == 'sii' %}active{% endif %}">
+        <span>✓</span> SII / Verifactu
+      </a></li>
+      <li><a href="/scheduler" class="nav-link {% if active == 'scheduler' %}active{% endif %}">
+        <span>⏱</span> Scheduler
+      </a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <span>NIF: {{ empresa_nif }}</span><br>
+      <span>Ejercicio {{ ejercicio }}</span>
+    </div>
+  </nav>
+
+  <main class="content">
+    {% if flash %}
+    <div class="alert alert-{{ flash_level or 'info' }}">{{ flash }}</div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

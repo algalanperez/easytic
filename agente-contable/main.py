@@ -4,16 +4,14 @@ Punto de entrada del Agente Contable de EasyTic.
 
 Modos:
   python main.py                          → chat interactivo (requiere ANTHROPIC_API_KEY)
+  python main.py --serve                  → panel web en http://localhost:8080
+  python main.py --scheduler              → scheduler standalone (sin web)
   python main.py --alertas                → vencimientos próximos (30 días)
   python main.py --calc 303 --periodo Q2  → calcula Modelo 303
-  python main.py --calc 111 --periodo Q2  → calcula Modelo 111
   python main.py --calc 200               → calcula Impuesto de Sociedades
   python main.py --draft 303 --periodo Q2 → calcula y guarda borrador
-  python main.py --draft 200              → borrador IS anual
   python main.py --sii-check              → verifica cumplimiento SII/Verifactu
-  python main.py --sii-check --periodo Q2 → SII sólo del trimestre
   python main.py --export 303 --periodo Q2 → exporta a XML
-  python main.py --export 200             → exporta IS a JSON
   python main.py --export facturas --desde 2025-01-01 --hasta 2025-12-31 → CSV
   python main.py --liquidaciones          → lista borradores guardados
   python main.py --sync Q1               → importa facturas Drive+Gmail (requiere OAuth)
@@ -255,6 +253,29 @@ def cmd_chat() -> None:
         print()
 
 
+def cmd_serve() -> None:
+    """Arranca el panel web (FastAPI + scheduler integrado)."""
+    import uvicorn
+    from web.app import app
+    print(f"\n  Panel web → http://{config.WEB_HOST}:{config.WEB_PORT}")
+    print(f"  BD: {config.DB_PATH}  |  Empresa: {config.EMPRESA_NOMBRE}\n")
+    uvicorn.run(app, host=config.WEB_HOST, port=config.WEB_PORT, log_level="info")
+
+
+def cmd_scheduler_standalone() -> None:
+    """Ejecuta el scheduler sin panel web (útil como servicio de fondo)."""
+    import time
+    import scheduler as sched_mod
+    sched_mod.start()
+    print("Scheduler arrancado. Ctrl+C para detener.")
+    try:
+        while True:
+            time.sleep(60)
+    except KeyboardInterrupt:
+        sched_mod.stop()
+        print("\nScheduler detenido.")
+
+
 def cmd_init_db() -> None:
     get_conn()
     print(f"Base de datos inicializada en: {config.DB_PATH}")
@@ -299,6 +320,10 @@ def main() -> None:
                         help="Fecha fin (para --export facturas)")
     parser.add_argument("--output",        metavar="FICHERO",
                         help="Ruta de salida para --export")
+    parser.add_argument("--serve",         action="store_true",
+                        help="Arranca el panel web en http://HOST:PORT")
+    parser.add_argument("--scheduler",     action="store_true",
+                        help="Ejecuta el scheduler standalone (sin web)")
     parser.add_argument("--liquidaciones", action="store_true",
                         help="Lista borradores/liquidaciones guardados")
     parser.add_argument("--sync",          metavar="Q1|Q2|Q3|Q4",
@@ -311,7 +336,11 @@ def main() -> None:
 
     periodo = args.periodo or ("anual" if (args.calc or args.export or "") == "200" else "Q1")
 
-    if args.calc:
+    if args.serve:
+        cmd_serve()
+    elif args.scheduler:
+        cmd_scheduler_standalone()
+    elif args.calc:
         cmd_calc(args.calc, periodo, args.ejercicio)
     elif args.draft:
         cmd_draft(args.draft, periodo, args.ejercicio)
