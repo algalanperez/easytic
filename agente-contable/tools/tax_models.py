@@ -136,7 +136,7 @@ def calculate_111(ejercicio: int, periodo: str) -> dict[str, Any]:
 
     rows = db.raw_query(f"""
         SELECT
-            COUNT(DISTINCT COALESCE(nif_emisor, nombre_emisor)) AS n_perceptores,
+            COUNT(DISTINCT COALESCE(nif_emisor, nombre_emisor, fuente_id)) AS n_perceptores,
             ROUND(SUM(base_imponible), 2)   AS base_retencion,
             ROUND(SUM(cuota_retencion), 2)  AS total_retencion
         FROM facturas
