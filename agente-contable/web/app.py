@@ -10,8 +10,11 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Form, Request
+import secrets
+
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -33,6 +36,28 @@ import scheduler as sched_mod
 BASE_DIR = Path(__file__).parent
 
 
+# ── Autenticación HTTP Basic ──────────────────────────────────────────────────
+
+_basic = HTTPBasic(auto_error=False)
+
+
+def require_auth(credentials: HTTPBasicCredentials | None = Depends(_basic)) -> None:
+    """Dependencia global. Si WEB_USER/WEB_PASS no están configurados, no hace nada."""
+    if not (config.WEB_USER and config.WEB_PASS):
+        return  # auth desactivada en dev
+    ok = (
+        credentials is not None
+        and secrets.compare_digest(credentials.username.encode(), config.WEB_USER.encode())
+        and secrets.compare_digest(credentials.password.encode(), config.WEB_PASS.encode())
+    )
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales incorrectas",
+            headers={"WWW-Authenticate": 'Basic realm="Agente Contable EasyTic"'},
+        )
+
+
 # ── Lifespan: inicia BD + scheduler ──────────────────────────────────────────
 
 @asynccontextmanager
@@ -44,7 +69,13 @@ async def lifespan(app: FastAPI):
     sched_mod.stop()
 
 
-app = FastAPI(title="Agente Contable EasyTic", docs_url=None, redoc_url=None, lifespan=lifespan)
+app = FastAPI(
+    title="Agente Contable EasyTic",
+    docs_url=None,
+    redoc_url=None,
+    lifespan=lifespan,
+    dependencies=[Depends(require_auth)],
+)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
